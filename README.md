@@ -1,5 +1,16 @@
 # Flight Tracker - Cheap Flight Finder to Santa Marta
 
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![CI](https://img.shields.io/github/actions/workflow/status/cesarpalaciodev/flight-tracker-bot/ci.yml?branch=main)
+![Coverage](https://img.shields.io/codecov/c/github/cesarpalaciodev/flight-tracker-bot/main)
+![Security](https://img.shields.io/github/actions/workflow/status/cesarpalaciodev/flight-tracker-bot/trivy-scan)
+![Dependabot](https://img.shields.io/badge/dependabot-enabled-brightgreen?logo=dependabot)
+![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)
+![Prometheus](https://img.shields.io/badge/prometheus-metrics-orange?logo=prometheus)
+![FastAPI](https://img.shields.io/badge/fastapi-web%20dashboard-green?logo=fastapi)
+![Tests](https://img.shields.io/badge/tests-11%20files-blue)
+
 Automated flight search from **Medellín (MDE)** and **Pereira (PEI)** to **Santa Marta (ADZ)**, with Telegram alerts when prices drop.
 
 ---
@@ -13,6 +24,7 @@ Automated flight search from **Medellín (MDE)** and **Pereira (PEI)** to **Sant
 - Price history stored locally
 - Rate limiting protection
 - Prometheus metrics
+- **Web dashboard with real-time monitoring**
 - Complete operation logging
 - Runs 24/7 as a Windows Service or Docker container
 
@@ -58,7 +70,14 @@ right-click install_service.bat -> Run as administrator
 ### Docker
 
 ```bash
+# Run bot only
 docker compose up -d
+
+# Run bot + dashboard
+docker compose --profile dashboard up -d
+
+# Run with monitoring
+docker compose --profile monitoring up -d
 ```
 
 ---
@@ -116,6 +135,7 @@ uv run mypy src/
 flight_tracker/
 ├── main.py                 # Run-once entry point
 ├── main_24_7.py           # Continuous 24/7 runner
+├── main_dashboard.py      # FastAPI dashboard entry point
 ├── pyproject.toml         # Project configuration
 ├── .env.example           # Template for .env
 ├── Dockerfile             # Docker image
@@ -130,7 +150,10 @@ flight_tracker/
 │   ├── test_ignav_api.py
 │   ├── test_price_history.py
 │   ├── test_rate_limiter.py
-│   └── test_telegram.py
+│   ├── test_telegram.py
+│   ├── test_config.py     # Config validation tests
+│   ├── test_security.py   # Security filter tests
+│   └── test_integration.py # Integration tests
 └── src/
     ├── models/
     │   ├── flight.py
@@ -139,6 +162,10 @@ flight_tracker/
     │   ├── email.py
     │   ├── ignav_api.py
     │   └── telegram.py
+    ├── dashboard/
+    │   ├── __init__.py    # FastAPI app
+    │   ├── routes.py      # API routes
+    │   └── templates.py   # Dashboard HTML
     └── utils/
         ├── config.py       # Pydantic-validated config
         ├── metrics.py      # Prometheus metrics
@@ -186,7 +213,7 @@ All configuration is managed through the `AppConfig` pydantic model in `src/util
 
 ## Metrics
 
-Prometheus metrics available at `http://localhost:8000`:
+Prometheus metrics available at `http://localhost:9090`:
 
 - `flight_tracker_flights_searched_total`
 - `flight_tracker_price_checks_total`
@@ -194,6 +221,47 @@ Prometheus metrics available at `http://localhost:8000`:
 - `flight_tracker_current_price_cop`
 - `flight_tracker_api_requests_total`
 - `flight_tracker_rate_limit_hits_total`
+
+---
+
+## Web Dashboard
+
+A real-time web dashboard is available to monitor flight prices, metrics, and price history.
+
+### Run Dashboard
+
+```bash
+# Install dependencies
+pip install -e ".[dashboard]"
+
+# Start dashboard
+python main_dashboard.py
+# or
+uvicorn src.dashboard:app --host 0.0.0.0 --port 8000
+```
+
+Then open `http://localhost:8000` in your browser.
+
+### Dashboard Features
+
+- **Real-time metrics**: Flights searched, price checks, alerts sent
+- **Current prices**: Live view of tracked routes
+- **Price comparison**: Ranked comparison of all routes
+- **Simulate checks**: Test price drop alerts with simulated data
+- **Auto-refresh**: Updates every 30 seconds
+
+### Dashboard API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Dashboard UI |
+| `/health` | GET | Health check |
+| `/api/metrics` | GET | All Prometheus metrics |
+| `/api/prices` | GET | Current prices |
+| `/api/price-history/{route}` | GET | Historical data for a route |
+| `/api/price-comparison` | GET | Ranked route comparison |
+| `/api/statistics` | GET | Overall statistics |
+| `/api/simulate-check` | POST | Simulate a price check |
 
 ---
 
