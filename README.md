@@ -142,7 +142,8 @@ flight_tracker/
     └── utils/
         ├── config.py       # Pydantic-validated config
         ├── metrics.py      # Prometheus metrics
-        └── rate_limiter.py # API rate limiting
+        ├── rate_limiter.py # API rate limiting
+        └── security.py     # Log sanitization filters
 ```
 
 ---
@@ -196,6 +197,47 @@ Prometheus metrics available at `http://localhost:8000`:
 
 ---
 
+## Security
+
+### Secrets Management
+
+All credentials are loaded from `.env` which is excluded from Git. Never commit credentials.
+
+### Log Sanitization
+
+Sensitive data is automatically redacted from logs:
+- API keys (`ignav_*`)
+- Telegram tokens (`digit:dashed`)
+- Chat IDs
+- Authorization headers
+- Passwords
+
+### Docker Security
+
+- Runs as non-root user (`appuser`)
+- Uses `dumb-init` to handle signals properly
+- Minimal image (`bookworm-slim`)
+- CA certificates included
+- Health checks enabled
+
+### CI/CD Security Scans
+
+Every push runs:
+- **GitLeaks**: Secret detection in code
+- **Bandit**: Python security patterns
+- **Safety**: Dependency vulnerability check
+- **Trivy**: Container vulnerability scan
+- **Dependabot**: Automatic dependency updates
+
+### Rate Limiting
+
+The API client includes built-in rate limiting:
+- Max 10 requests per minute
+- Max 100 requests per hour
+- Automatic backoff on rate limit detection
+
+---
+
 ## License
 
 MIT License - Free to use and modify.
@@ -209,4 +251,5 @@ MIT License - Free to use and modify.
 3. Make your changes
 4. Run tests: `uv run pytest tests/`
 5. Run linting: `uv run ruff check .`
-6. Submit a pull request
+6. Run security scan: `uv run bandit -r src/`
+7. Submit a pull request

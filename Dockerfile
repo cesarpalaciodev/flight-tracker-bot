@@ -1,27 +1,43 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 LABEL org.opencontainers.image.title="Flight Tracker"
 LABEL org.opencontainers.image.description="Automated flight price tracker with Telegram alerts"
 LABEL org.opencontainers.image.source="https://github.com/cesarpalaciodev/flight-tracker-bot"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.maintainer="cesarpalaciodev"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PYTHONFAULTHANDLER=1
+ENV PIP_ROOT_USER_ACTION=prevent_credential_confirmation
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN groupadd --gid 1000 appuser && \
+    useradd --uid 1000 --gid appuser --shell /bin/false --create-home appuser && \
+    mkdir -p /app/logs /app/data && \
+    chown -R appuser:appuser /app
 
-COPY requirements.txt .
+COPY --chown=appuser:appuser requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-recommends \
+        ca-certificates \
+        curl \
+        dumb-init \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-COPY . .
+RUN pip install --no-cache-dir --user --break-system-packages -r requirements.txt && \
+    rm -f /root/.local/bin/python* /root/.local/bin/pip*
 
-RUN mkdir -p /app/logs /app/data && \
-    chmod +x /app/install_service.sh 2>/dev/null || true
+COPY --chown=appuser:appuser . .
 
-USER 1000
+USER appuser
 
-ENTRYPOINT ["python", "main_24_7.py"]
+HEALTHCHECK --interval=30m --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+ENTRYPOINT ["dumb-init", "--", "python", "-u", "main_24_7.py"]
