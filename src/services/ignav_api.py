@@ -1,8 +1,12 @@
 import logging
 import time
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Optional, TYPE_CHECKING
 
 import requests
+
+if TYPE_CHECKING:
+    from src.models.flight import FlightData
 
 
 AIRLINES_URLS = {
@@ -30,7 +34,7 @@ class IgnavAPIService:
     
     def search_round_trip(self, origin: str, destination: str, departure_date: str, return_date: str, adults: int = 2) -> Optional[dict]:
         if not self.api_key:
-            self.logger.warning("API key no configurada")
+            self.logger.warning("API key not configured")
             return None
         
         payload = {
@@ -41,7 +45,7 @@ class IgnavAPIService:
             "adults": adults
         }
         
-        self.logger.info(f"Buscando {origin} -> {destination} (ida y vuelta)")
+        self.logger.info(f"Searching {origin} -> {destination} (round-trip)")
         
         try:
             response = self.session.post(self.ROUND_TRIP_URL, json=payload, timeout=self.TIMEOUT)
@@ -50,19 +54,19 @@ class IgnavAPIService:
             if response.status_code == 200:
                 return response.json()
             elif response.status_code == 429:
-                self.logger.error("Rate limit excedido")
+                self.logger.error("Rate limit exceeded")
             else:
                 self.logger.warning(f"API error {response.status_code}: {response.text}")
         except requests.exceptions.Timeout:
-            self.logger.error("Timeout en solicitud")
+            self.logger.error("Request timeout")
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error de conexion: {e}")
+            self.logger.error(f"Connection error: {e}")
         
         return None
     
     def search_flight(self, origin: str, destination: str, date: str) -> Optional[dict]:
         if not self.api_key:
-            self.logger.warning("API key no configurada")
+            self.logger.warning("API key not configured")
             return None
         
         payload = {
@@ -71,7 +75,7 @@ class IgnavAPIService:
             "departure_date": date
         }
         
-        self.logger.info(f"Buscando {origin} -> {destination} para {date}")
+        self.logger.info(f"Searching {origin} -> {destination} for {date}")
         
         try:
             response = self.session.post(self.ONE_WAY_URL, json=payload, timeout=self.TIMEOUT)
@@ -80,13 +84,13 @@ class IgnavAPIService:
             if response.status_code == 200:
                 return response.json()
             elif response.status_code == 429:
-                self.logger.error("Rate limit excedido")
+                self.logger.error("Rate limit exceeded")
             else:
                 self.logger.warning(f"API error {response.status_code}: {response.text}")
         except requests.exceptions.Timeout:
-            self.logger.error("Timeout en solicitud")
+            self.logger.error("Request timeout")
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Error de conexion: {e}")
+            self.logger.error(f"Connection error: {e}")
         
         return None
     
@@ -96,7 +100,7 @@ class IgnavAPIService:
         result = self.search_flight(origin, destination, date)
         
         if not result or not result.get("itineraries"):
-            self.logger.info(f"No hay vuelos {origin} -> {destination}")
+            self.logger.info(f"No flights for {origin} -> {destination}")
             return None
         
         flights = result["itineraries"]
@@ -112,7 +116,7 @@ class IgnavAPIService:
             return None
         
         try:
-            self.logger.info(f"Obteniendo link para: {ignav_id}")
+            self.logger.info(f"Getting link for: {ignav_id}")
             response = self.session.post(
                 "https://ignav.com/api/fares/booking-links",
                 json={"ignav_id": ignav_id},
@@ -129,7 +133,7 @@ class IgnavAPIService:
                     links = options[0].get("links", [])
                     if links:
                         url = links[0].get("url", "")
-                        self.logger.info(f"Link encontrado: {url}")
+                        self.logger.info(f"Link found: {url}")
                         return url
             else:
                 self.logger.warning(f"Error getting link: {response.text}")
@@ -145,11 +149,10 @@ class IgnavAPIService:
         best_price = float("inf")
         
         for dep_date in departure_dates:
-            from datetime import datetime, timedelta
             ret_date = datetime.strptime(dep_date, "%Y-%m-%d") + timedelta(days=return_days)
             return_date = ret_date.strftime("%Y-%m-%d")
             
-            self.logger.info(f"Buscando {origin} -> {destination}: {dep_date} - {return_date} ({adults} personas)")
+            self.logger.info(f"Searching {origin} -> {destination}: {dep_date} - {return_date} ({adults} adults)")
             
             result = self.search_round_trip(origin, destination, dep_date, return_date, adults)
             
@@ -177,6 +180,6 @@ class IgnavAPIService:
                     best_flight = FlightData.from_ignav_response(cheapest, origin, dep_date, destination, return_date=return_date)
         
         if best_flight:
-            self.logger.info(f"Mejor precio: ${best_flight.price:,.0f} ({adults} personas)")
+            self.logger.info(f"Best price: ${best_flight.price:,.0f} COP ({adults} adults)")
         
         return best_flight

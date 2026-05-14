@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime
 from typing import Optional
 
 import requests
@@ -29,6 +30,34 @@ class TelegramService:
         self.chat_id = chat_id
         self.logger = logger or logging.getLogger(__name__)
     
+    def send_flight_alert(
+        self,
+        old_price: float,
+        new_price: float,
+        flight_data: dict,
+        booking_link: str = ""
+    ) -> bool:
+        drop = old_price - new_price
+        origin = flight_data.get("origin", "")
+        destination = flight_data.get("destination", "")
+        airline = flight_data.get("airline", "")
+        date = flight_data.get("date", "")
+        return_date = flight_data.get("return_date", "")
+        
+        text = f"🔽 PRECIO BAJO\n\n"
+        text += f"✈️ {origin} → {destination}\n"
+        text += f"💰 ${old_price:,.0f} → ${new_price:,.0f}\n"
+        text += f"📉 Ahorro: ${drop:,.0f}\n\n"
+        text += f"🏷️ {airline}\n"
+        text += f"📅 Ida: {date}\n"
+        if return_date:
+            text += f"📅 Vuelta: {return_date}\n"
+        
+        if booking_link and booking_link.startswith("http"):
+            text += f"\n<a href=\"{booking_link}\">🔗 Reservar</a>"
+        
+        return self.send_message(text)
+    
     def send_message(self, text: str, parse_mode: str = "HTML", retries: int = 3) -> bool:
         url = self.BASE_URL.format(token=self.token)
         payload = {"chat_id": self.chat_id, "text": text, "parse_mode": parse_mode}
@@ -37,12 +66,12 @@ class TelegramService:
             try:
                 response = requests.post(url, json=payload, timeout=60)
                 if response.status_code == 200:
-                    self.logger.info("Mensaje enviado a Telegram")
+                    self.logger.info("Message sent to Telegram")
                     return True
                 else:
                     self.logger.error(f"Telegram error: {response.status_code}")
             except requests.exceptions.RequestException as e:
-                self.logger.error(f"Intento {attempt + 1} - Error: {e}")
+                self.logger.error(f"Attempt {attempt + 1} - Error: {e}")
                 if attempt < retries - 1:
                     time.sleep(10)
         return False

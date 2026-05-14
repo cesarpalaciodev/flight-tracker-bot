@@ -1,4 +1,5 @@
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import logging
@@ -6,7 +7,7 @@ from typing import Optional, List
 
 
 class EmailService:
-    """Servicio para enviar emails."""
+    """Email notification service."""
     
     def __init__(
         self,
@@ -49,9 +50,8 @@ class EmailService:
                 return True
                 
             except Exception as e:
-                self.logger.error(f"Intento {attempt + 1} - Error: {e}")
+                self.logger.error(f"Attempt {attempt + 1} - Error: {e}")
                 if attempt < retries - 1:
-                    import time
                     time.sleep(5)
         
         return False

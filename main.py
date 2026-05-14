@@ -1,6 +1,6 @@
 """
-Flight Tracker - Buscador de vuelos a Santa Marta
-Busca vuelos ida y vuelta y encuentra el precio más bajo.
+Flight Tracker - Searches for cheap flights to Santa Marta.
+Finds lowest round-trip prices.
 """
 
 import logging
@@ -12,7 +12,7 @@ from src.utils import config
 
 
 def get_departure_dates(days_ahead_start: int = 7, days_ahead_end: int = 60, interval: int = 7) -> list:
-    """Genera lista de fechas de salida."""
+    """Generates list of departure dates."""
     dates = []
     for i in range(days_ahead_start, days_ahead_end, interval):
         date = datetime.now() + timedelta(days=i)
@@ -26,7 +26,7 @@ def check_prices_and_notify(
     history: PriceHistory,
     logger: logging.Logger
 ) -> None:
-    """Verifica precios ida y vuelta y notifica."""
+    """Checks round-trip prices and sends notifications."""
     
     results = []
     departure_dates = get_departure_dates(7, 60, 7)
@@ -34,7 +34,7 @@ def check_prices_and_notify(
     
     for origin in config.ORIGINS:
         route = config.build_route_key(origin, config.DESTINATION)
-        logger.info(f"Verificando {route} (ida y vuelta, {adults} personas)...")
+        logger.info(f"Checking {route} (round-trip, {adults} adults)...")
         
         flight = api.search_cheapest_round_trip(
             origin,
@@ -45,10 +45,10 @@ def check_prices_and_notify(
         )
         
         if not flight:
-            logger.warning(f"No se encontró vuelo para {route}")
+            logger.warning(f"No flight found for {route}")
             continue
         
-        logger.info(f"Mejor precio: ${flight.price:,.0f} ({flight.trip_type})")
+        logger.info(f"Best price: ${flight.price:,.0f} COP")
         
         booking_link = api.get_booking_link(flight.booking_link)
         
@@ -56,7 +56,7 @@ def check_prices_and_notify(
         
         if previous is not None:
             if flight.price < previous - config.PRICE_DROP_THRESHOLD:
-                logger.info(f"¡PRECIO BAJÓ! ${previous:,.0f} -> ${flight.price:,.0f}")
+                logger.info(f"PRICE DROPPED! ${previous:,.0f} -> ${flight.price:,.0f}")
                 telegram.send_flight_alert(
                     previous,
                     flight.price,
@@ -77,23 +77,23 @@ def check_prices_and_notify(
         results.append((flight, booking_link or ""))
     
     if results:
-        telegram.send_price_summary([f[0] for f in results], "Ida y Vuelta", config.API_KEY)
+        telegram.send_price_summary(results, "Ida y Vuelta")
 
 
 def main() -> None:
-    """Punto de entrada principal."""
+    """Main entry point."""
     logger = config.setup_logging()
     
     logger.info("=" * 50)
-    logger.info("Flight Tracker 24/7 - Santa Marta (Ida y Vuelta)")
+    logger.info("Flight Tracker - Santa Marta (Round Trip)")
     logger.info("=" * 50)
     
     if not config.API_KEY:
-        logger.error("Configura IGNAV_API_KEY en .env")
-        print("\n⚠️  Configura tu API key de Ignav:")
-        print("   1. Ve a https://ignav.com")
-        print("   2. Regístrate")
-        print("   3. Obtén tu API key")
+        logger.error("Configure IGNAV_API_KEY in .env")
+        print("\n⚠️  Configure your Ignav API key:")
+        print("   1. Go to https://ignav.com")
+        print("   2. Register")
+        print("   3. Get your API key")
         return
     
     api = IgnavAPIService(config.API_KEY, logger)
@@ -102,7 +102,7 @@ def main() -> None:
     
     check_prices_and_notify(api, telegram, history, logger)
     
-    logger.info("Búsqueda completada")
+    logger.info("Search completed")
 
 
 if __name__ == "__main__":

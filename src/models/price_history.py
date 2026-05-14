@@ -1,11 +1,10 @@
-import os
 import json
 from pathlib import Path
 from typing import Optional
 
 
 class PriceHistory:
-    """Gestiona historial de precios."""
+    """Manages price history."""
     
     def __init__(self, file_path: Path):
         self.file_path = file_path

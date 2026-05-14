@@ -1,6 +1,6 @@
 """
-Flight Tracker 24/7 - Buscador de vuelos a Santa Marta
-Ejecuta cada hora y envía los mejores precios por Telegram.
+Flight Tracker 24/7 - Searches for cheap flights to Santa Marta.
+Runs every 8 hours and sends best prices via Telegram.
 """
 
 import logging
@@ -31,7 +31,7 @@ def check_prices(api: IgnavAPIService, telegram: TelegramService, history: Price
     
     for origin in config.ORIGINS:
         route = config.build_route_key(origin, config.DESTINATION)
-        logger.info(f"Verificando {route} (ida y vuelta, {adults} personas)...")
+        logger.info(f"Checking {route} (round-trip, {adults} adults)...")
         
         flight = api.search_cheapest_round_trip(
             origin, config.DESTINATION, departure_dates,
@@ -39,10 +39,10 @@ def check_prices(api: IgnavAPIService, telegram: TelegramService, history: Price
         )
         
         if not flight:
-            logger.warning(f"No se encontró vuelo para {route}")
+            logger.warning(f"No flight found for {route}")
             continue
 
-        logger.info(f"Mejor precio: ${flight.price:,.0f} COP ({adults} personas)")
+        logger.info(f"Best price: ${flight.price:,.0f} COP ({adults} adults)")
         
         booking_link = api.get_booking_link(flight.booking_link)
         
@@ -64,12 +64,12 @@ def check_prices(api: IgnavAPIService, telegram: TelegramService, history: Price
 
 def run_check(logger: logging.Logger, api: IgnavAPIService, telegram: TelegramService, history: PriceHistory) -> None:
     logger.info("=" * 50)
-    logger.info(f"Verificacion - {datetime.now()}")
+    logger.info(f"Check - {datetime.now()}")
     logger.info("=" * 50)
     
     check_prices(api, telegram, history, logger)
     
-    logger.info("Verificacion completada")
+    logger.info("Check completed")
 
 
 def main() -> None:
@@ -77,13 +77,13 @@ def main() -> None:
     
     logger.info("=" * 50)
     logger.info("Flight Tracker 24/7 - Santa Marta")
-    logger.info(f"Ejecutando cada {CHECK_INTERVAL_HOURS} hora")
-    logger.info(f"2 personas | Ida y Vuelta | 5 noches")
+    logger.info(f"Running every {CHECK_INTERVAL_HOURS} hours")
+    logger.info(f"2 adults | Round Trip | 5 nights")
     logger.info("=" * 50)
     
     if not config.API_KEY:
-        logger.error("Configura IGNAV_API_KEY en .env")
-        print("\n⚠️  Configura tu API key de Ignav en .env")
+        logger.error("Configure IGNAV_API_KEY in .env")
+        print("\n⚠️  Configure your Ignav API key in .env")
         return
     
     api = IgnavAPIService(config.API_KEY, logger)
@@ -92,7 +92,7 @@ def main() -> None:
     
     run_check(logger, api, telegram, history)
     
-    logger.info(f"\nPróxima verificación en {CHECK_INTERVAL_HOURS} hora...")
+    logger.info(f"Next check in {CHECK_INTERVAL_HOURS} hours...")
     
     while True:
         time.sleep(CHECK_INTERVAL_HOURS * 3600)
