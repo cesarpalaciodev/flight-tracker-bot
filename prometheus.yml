@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 60s
+  evaluation_interval: 60s
+
+scrape_configs:
+  - job_name: "flight-tracker"
+    static_configs:
+      - targets: ["flight-tracker:8000"]
+        labels:
+          app: "flight-tracker"
+          environment: "production"

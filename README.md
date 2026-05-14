@@ -11,8 +11,10 @@ Automated flight search from **Medellín (MDE)** and **Pereira (PEI)** to **Sant
 - Compare with historical prices
 - Telegram alerts when prices drop
 - Price history stored locally
+- Rate limiting protection
+- Prometheus metrics
 - Complete operation logging
-- Runs 24/7 as a Windows Service
+- Runs 24/7 as a Windows Service or Docker container
 
 ---
 
@@ -22,22 +24,41 @@ Automated flight search from **Medellín (MDE)** and **Pereira (PEI)** to **Sant
 
 ```bash
 pip install -r requirements.txt
+# or with uv:
+uv pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment
-
-Copy `.env.example` to `.env`:
 
 ```bash
 copy .env.example .env
 ```
 
-Edit `.env` with your credentials (see Configuration section below).
+Edit `.env` with your credentials.
 
 ### 3. Run Once
 
 ```bash
 python main.py
+```
+
+---
+
+## Installation
+
+### Windows Service (Recommended)
+
+See [DEPLOY_WINDOWS.md](DEPLOY_WINDOWS.md) for detailed instructions.
+
+```cmd
+choco install nssm
+right-click install_service.bat -> Run as administrator
+```
+
+### Docker
+
+```bash
+docker compose up -d
 ```
 
 ---
@@ -67,150 +88,111 @@ TELEGRAM_CHAT_ID=your_chat_id_here
 
 ---
 
-## Deployment (24/7)
+## Development
 
-The bot can run as a **Windows Service** to search flights continuously without requiring a terminal or logged-in user.
+### Setup
 
-See [DEPLOY_WINDOWS.md](DEPLOY_WINDOWS.md) for detailed deployment instructions.
+```bash
+# Clone the repository
+git clone https://github.com/cesarpalaciodev/flight-tracker-bot.git
+cd flight-tracker-bot
 
-### Quick Deployment
+# Install dependencies with dev tools
+uv pip install -e ".[dev]"
 
-1. **Install nssm** (Non-Sucking Service Manager):
-   ```cmd
-   choco install nssm
-   ```
-   Or download from https://nssm.cc/download
+# Run tests
+uv run pytest tests/
 
-2. **Run the installer as Administrator**:
-   ```cmd
-   right-click install_service.bat
-   select "Run as administrator"
-   ```
+# Run linting
+uv run ruff check .
 
-3. **The service will start automatically** with Windows and run 24/7 in the background.
+# Run type checking
+uv run mypy src/
+```
 
-### Managing the Service
-
-- **Start/Stop/Restart**: Run `service_manager.bat` or use `services.msc`
-- **View logs**: `logs/flight_tracker.log`
-- **Uninstall**: Run `service_manager.bat` and select option 5
-
----
-
-## Project Structure
+### Project Structure
 
 ```
 flight_tracker/
 ├── main.py                 # Run-once entry point
 ├── main_24_7.py           # Continuous 24/7 runner
-├── .env                   # Environment variables (not committed)
+├── pyproject.toml         # Project configuration
 ├── .env.example           # Template for .env
-├── requirements.txt       # Python dependencies
+├── Dockerfile             # Docker image
+├── docker-compose.yml     # Docker Compose setup
+├── prometheus.yml         # Prometheus config
 ├── install_service.bat    # Windows Service installer
 ├── service_manager.bat    # Service management menu
-├── DEPLOY_WINDOWS.md      # Deployment guide
-├── src/
-│   ├── models/
-│   │   ├── flight.py      # Flight data model
-│   │   └── price_history.py # Price history tracker
-│   ├── services/
-│   │   ├── ignav_api.py   # Ignav API integration
-│   │   └── telegram.py    # Telegram bot
-│   └── utils/
-│       └── config.py      # Configuration
-├── data/                  # Price history data
-└── logs/                  # Application logs
+├── DEPLOY_WINDOWS.md      # Windows deployment guide
+├── tests/                 # Unit tests
+│   ├── conftest.py        # Test fixtures
+│   ├── test_flight.py
+│   ├── test_ignav_api.py
+│   ├── test_price_history.py
+│   ├── test_rate_limiter.py
+│   └── test_telegram.py
+└── src/
+    ├── models/
+    │   ├── flight.py
+    │   └── price_history.py
+    ├── services/
+    │   ├── email.py
+    │   ├── ignav_api.py
+    │   └── telegram.py
+    └── utils/
+        ├── config.py       # Pydantic-validated config
+        ├── metrics.py      # Prometheus metrics
+        └── rate_limiter.py # API rate limiting
 ```
 
 ---
 
-## Advanced Configuration
+## Configuration Options
 
-### Price Drop Threshold
+All configuration is managed through the `AppConfig` pydantic model in `src/utils/config.py`:
 
-By default, alerts are sent when price drops by any amount. To change:
-
-Edit `src/utils/config.py`:
-```python
-PRICE_DROP_THRESHOLD = 50000  # Change this value (COP)
-```
-
-### Search Origins
-
-Edit `src/utils/config.py`:
-```python
-ORIGINS = ["MDE", "PEI"]  # Add more airport codes
-```
-
-### Search Intervals
-
-Edit `main_24_7.py`:
-```python
-CHECK_INTERVAL_HOURS = 8  # How often to search (hours)
-```
-
-### Departure Dates Range
-
-Edit `main_24_7.py`:
-```python
-departure_dates = get_departure_dates(68, 131, 14)
-# From 68 days ahead to 131 days ahead, every 14 days
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `destination` | Airport code | `ADZ` |
+| `origins` | Origin airports | `["MDE", "PEI"]` |
+| `price_drop_threshold` | Minimum drop to alert (COP) | `1.0` |
+| `check_interval_hours` | Hours between checks | `8` |
+| `adults` | Number of passengers | `2` |
+| `return_days` | Days for return trip | `5` |
+| `days_ahead_start` | Days ahead to start search | `68` |
+| `days_ahead_end` | Days ahead to end search | `131` |
+| `days_interval` | Days between search dates | `14` |
 
 ---
 
 ## Alert Format
 
-When a price drops, you'll receive a Telegram message like:
-
 ```
- Best Price Drop!
+🔽 PRECIO BAJO
 
- MDE → ADZ
- $500,000 → $350,000
- Savings: $150,000
+✈️ MDE → ADZ
+💰 $200,000 → $150,000
+📉 Ahorro: $50,000
 
- Avianca
- 2026-05-23 (round trip)
+🏷️ Avianca
+📅 Ida: 2026-06-15
+📅 Vuelta: 2026-06-20
 
- [BOOK NOW](link)
+🔗 Reservar
 ```
 
 ---
 
-## Troubleshooting
+## Metrics
 
-### "API key not configured"
+Prometheus metrics available at `http://localhost:8000`:
 
-Edit the `.env` file and add your Ignav API key.
-
-### "No flights found"
-
-- Verify the search dates are valid
-- Some routes may not have available flights
-
-### "Telegram messages not arriving"
-
-- Verify the Bot Token is correct
-- Verify the Chat ID is correct
-- Make sure you've started the bot (`/start`)
-
-### Service won't start
-
-1. Check if Python is in PATH: `where python`
-2. Check logs: `nssm status FlightTracker`
-3. Verify `.env` file exists with valid credentials
-4. Try running manually: `python main_24_7.py`
-
----
-
-## Tech Stack
-
-- **Python 3.8+**
-- **requests** - HTTP client
-- **python-dotenv** - Environment variables
-- **nssm** - Windows Service Manager
-- **Telegram Bot API** - Alerts
+- `flight_tracker_flights_searched_total`
+- `flight_tracker_price_checks_total`
+- `flight_tracker_price_alerts_sent_total`
+- `flight_tracker_current_price_cop`
+- `flight_tracker_api_requests_total`
+- `flight_tracker_rate_limit_hits_total`
 
 ---
 
@@ -225,4 +207,6 @@ MIT License - Free to use and modify.
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Run tests: `uv run pytest tests/`
+5. Run linting: `uv run ruff check .`
+6. Submit a pull request
