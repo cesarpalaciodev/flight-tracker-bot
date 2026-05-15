@@ -1,9 +1,13 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Optional, List
+import logging
 
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, JSON, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, JSON, ForeignKey, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, relationship
+
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -94,14 +98,19 @@ class AlertLog(Base):
 
 class Database:
     def __init__(self, db_url: str = "sqlite:///data/flight_tracker.db"):
-        self.engine = create_engine(
-            db_url,
-            echo=False,
-            pool_pre_ping=True,
-            connect_args={"check_same_thread": False} if "sqlite" in db_url else {},
-        )
-        Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
+        try:
+            self.engine = create_engine(
+                db_url,
+                echo=False,
+                pool_pre_ping=True,
+                connect_args={"check_same_thread": False} if "sqlite" in db_url else {},
+            )
+            Base.metadata.create_all(self.engine)
+            self.Session = sessionmaker(bind=self.engine)
+            logger.info(f"Database connected: {db_url}")
+        except Exception as e:
+            logger.error(f"Database connection failed: {e}")
+            raise
 
     def get_session(self):
         return self.Session()
