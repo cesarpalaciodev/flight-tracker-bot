@@ -61,7 +61,7 @@ DASHBOARD_HTML = """
         <div class="card">
             <h2>✈️ Flight Tracker Login</h2>
             <p style="color:var(--text2);margin-bottom:1.5rem">Ingresa tu Chat ID de Telegram para acceder al dashboard.</p>
-            <input type="text" id="chat-id-input" placeholder="Tu Chat ID (ej: 8116692870)" />
+            <input type="text" id="chat-id-input" placeholder="Tu Chat ID (ej: 123456789)" />
             <button class="btn" onclick="login()">Ingresar</button>
             <p style="color:var(--text2);font-size:.875rem;margin-top:1rem;text-align:center">
                 No sabes tu Chat ID? Envía cualquier mensaje a <b>@userinfobot</b> en Telegram.
