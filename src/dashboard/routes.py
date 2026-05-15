@@ -157,10 +157,10 @@ async def get_statistics() -> dict:
         db_stats = {"error": "Database unavailable"}
 
     stats["metrics_captured"] = {
-        "flights_searched": int(FLIGHTS_SEARCHED._value.get()),
-        "price_checks": int(PRICE_CHECKS._value.get()),
-        "alerts_sent": int(PRICE_ALERTS_SENT._value.get()),
-        "rate_limit_hits": int(RATE_LIMIT_HITS._value.get()),
+        "flights_searched": int(FLIGHTS_SEARCHED.get()),
+        "price_checks": int(PRICE_CHECKS.get()),
+        "alerts_sent": int(PRICE_ALERTS_SENT.get()),
+        "rate_limit_hits": int(RATE_LIMIT_HITS.get()),
     }
     stats["database"] = db_stats
     return stats
