@@ -100,11 +100,13 @@ def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig, DatabaseConf
     except Exception:
         api_key = telegram_token = telegram_chat_id = db_url = redis_url = ""
 
+    from pydantic import ValidationError
+    
     def safe_cfg(cfg_type, **kw):
         try:
             return cfg_type(**kw)
-        except ValueError:
-            return cfg_type(**{k: "" for k in kw})
+        except (ValueError, ValidationError):
+            return cfg_type.model_construct(**{k: "" for k in kw})
 
     return (
         safe_cfg(IgnavConfig, api_key=api_key),
