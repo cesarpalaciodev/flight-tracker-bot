@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from contextlib import asynccontextmanager
 import logging
 from datetime import datetime
@@ -44,8 +44,17 @@ app.include_router(routes.router)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def root() -> str:
-    return templates.DASHBOARD_HTML
+async def root() -> Response:
+    html = templates.DASHBOARD_HTML
+    return Response(
+        content=html,
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+    )
 
 
 @app.get("/health")

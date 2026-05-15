@@ -4,6 +4,7 @@ from src.models.price_history import PriceHistory
 from src.services.ignav_api import IgnavAPIService
 from src.services.telegram import TelegramService
 from src.utils import config
+from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT
 
 
 def get_departure_dates(
@@ -34,44 +35,45 @@ def check_prices_and_notify(
             logger.info(f"Checking {route} (round-trip, {adults} adults)...")
 
             flight = api.search_cheapest_round_trip(
-                origin,
-                destination,
-                departure_dates,
-                return_days=5,
-                adults=adults
+                origin, destination, departure_dates,
+                return_days=5, adults=adults
             )
 
-        if not flight:
-            logger.warning(f"No flight found for {route}")
-            continue
+            if not flight:
+                logger.warning(f"No flight found for {route}")
+                continue
 
-        logger.info(f"Best price: ${flight.price:,.0f} COP")
+            logger.info(f"Best price: ${flight.price:,.0f} COP")
 
-        booking_link = api.get_booking_link(flight.booking_link)
+            booking_link = api.get_booking_link(flight.booking_link)
 
-        previous = history.get_last_price(route)
+            previous = history.get_last_price(route)
 
-        if previous is not None:
-            if flight.price < previous - config.PRICE_DROP_THRESHOLD:
-                logger.info(f"PRICE DROPPED! ${previous:,.0f} -> ${flight.price:,.0f}")
-                telegram.send_flight_alert(
-                    previous,
-                    flight.price,
-                    flight.to_dict(),
-                    booking_link or ""
-                )
+            if previous is not None:
+                if flight.price < previous - config.PRICE_DROP_THRESHOLD:
+                    logger.info(f"PRICE DROPPED! ${previous:,.0f} -> ${flight.price:,.0f}")
+                    telegram.send_flight_alert(
+                        previous,
+                        flight.price,
+                        flight.to_dict(),
+                        booking_link or ""
+                    )
+                    PRICE_ALERTS_SENT.inc()
 
-        history.update_price(
-            route,
-            {
+            history.update_price(route, {
                 "price": flight.price,
                 "last_update": datetime.now().isoformat(),
                 "airline": flight.airline,
                 "booking_link": flight.booking_link
-            }
-        )
+            })
 
-        results.append((flight, booking_link or ""))
+            results.append((flight, booking_link or ""))
+            FLIGHTS_SEARCHED.inc()
+            PRICE_CHECKS.inc()
+
+    if results:
+        telegram.send_price_summary(results, "Ida y Vuelta")
+        PRICE_ALERTS_SENT.inc()
 
     if results:
         telegram.send_price_summary(results, "Ida y Vuelta")

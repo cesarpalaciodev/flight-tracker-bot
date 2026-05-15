@@ -10,8 +10,8 @@ _RATE_LIMIT_FILE: Path = _BASE_DIR / "data" / "rate_limit.json"
 
 
 class RateLimiter:
-    MAX_REQUESTS_PER_MINUTE = 10
-    MAX_REQUESTS_PER_HOUR = 100
+    MAX_REQUESTS_PER_MINUTE = 20
+    MAX_REQUESTS_PER_HOUR = 200
 
     def __init__(self) -> None:
         self.data: dict = self._load()

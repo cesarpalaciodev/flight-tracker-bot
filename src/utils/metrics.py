@@ -63,18 +63,23 @@ class PersistentCounter:
                     self.prom_counter.labels(**labels).inc(amount)
                 else:
                     self.prom_counter.inc(amount)
-            except Exception:
-                pass
+            except Exception as e:
+                import traceback
+                logging.getLogger("metrics").error(f"Prometheus inc error: {e}\n{traceback.format_exc()}")
 
-            persisted = _load_persisted()
-            if labels:
-                label_key = str(sorted(labels.items()))
-                if self.name not in persisted:
-                    persisted[self.name] = {}
-                persisted[self.name][label_key] = persisted[self.name].get(label_key, 0) + amount
-            else:
-                persisted[self.name] = persisted.get(self.name, 0) + amount
-            _save_persisted(persisted)
+            try:
+                persisted = _load_persisted()
+                if labels:
+                    label_key = str(sorted(labels.items()))
+                    if self.name not in persisted:
+                        persisted[self.name] = {}
+                    persisted[self.name][label_key] = persisted[self.name].get(label_key, 0) + amount
+                else:
+                    persisted[self.name] = persisted.get(self.name, 0) + amount
+                _save_persisted(persisted)
+            except Exception as e:
+                import traceback
+                logging.getLogger("metrics").error(f"Metrics save error: {e}\n{traceback.format_exc()}")
 
     def get(self) -> float:
         return self._value

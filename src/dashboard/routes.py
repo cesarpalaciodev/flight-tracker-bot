@@ -4,10 +4,7 @@ from datetime import datetime
 import logging
 import os
 
-from src.utils.metrics import (
-    FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT,
-    CURRENT_PRICES, API_REQUESTS, RATE_LIMIT_HITS,
-)
+from src.utils.metrics import CURRENT_PRICES
 from src.utils.config import (
     PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS, DATA_DIR, DATABASE_URL
 )
@@ -32,15 +29,21 @@ def verify_token(authorization: str = Header(None)):
 @router.get("/metrics")
 async def get_metrics() -> dict:
     try:
-        api_total = sum(v._value.get() for v in API_REQUESTS._metrics.values())
+        import json
+        from src.utils.metrics import _METRICS_FILE
+        if _METRICS_FILE.exists():
+            with open(_METRICS_FILE) as f:
+                data = json.load(f)
+        else:
+            data = {}
     except Exception:
-        api_total = 0
+        data = {}
     return {
-        "flights_searched_total": int(FLIGHTS_SEARCHED.get()),
-        "price_checks_total": int(PRICE_CHECKS.get()),
-        "price_alerts_sent_total": int(PRICE_ALERTS_SENT.get()),
-        "api_requests_total": api_total,
-        "rate_limit_hits_total": int(RATE_LIMIT_HITS.get()),
+        "flights_searched_total": int(data.get("flight_tracker_flights_searched_total", 0)),
+        "price_checks_total": int(data.get("flight_tracker_price_checks_total", 0)),
+        "price_alerts_sent_total": int(data.get("flight_tracker_price_alerts_sent_total", 0)),
+        "api_requests_total": int(data.get("flight_tracker_api_requests_total", 0)),
+        "rate_limit_hits_total": int(data.get("flight_tracker_rate_limit_hits_total", 0)),
     }
 
 
@@ -111,6 +114,7 @@ async def simulate_price_check(
         "airline": airline, "booking_link": f"sim_{origin}_{price}"
     })
 
+    from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT
     CURRENT_PRICES.labels(origin=origin.upper(), destination=destination.upper(), airline=airline).set(price)
     PRICE_CHECKS.inc()
     FLIGHTS_SEARCHED.inc()
@@ -175,11 +179,21 @@ async def get_statistics() -> dict:
     except Exception:
         db_stats = {"error": "Database unavailable"}
 
+    import json
+    from src.utils.metrics import _METRICS_FILE
+    try:
+        if _METRICS_FILE.exists():
+            with open(_METRICS_FILE) as f:
+                mdata = json.load(f)
+        else:
+            mdata = {}
+    except Exception:
+        mdata = {}
     stats["metrics_captured"] = {
-        "flights_searched": int(FLIGHTS_SEARCHED.get()),
-        "price_checks": int(PRICE_CHECKS.get()),
-        "alerts_sent": int(PRICE_ALERTS_SENT.get()),
-        "rate_limit_hits": int(RATE_LIMIT_HITS.get()),
+        "flights_searched": int(mdata.get("flight_tracker_flights_searched_total", 0)),
+        "price_checks": int(mdata.get("flight_tracker_price_checks_total", 0)),
+        "alerts_sent": int(mdata.get("flight_tracker_price_alerts_sent_total", 0)),
+        "rate_limit_hits": int(mdata.get("flight_tracker_rate_limit_hits_total", 0)),
     }
     stats["database"] = db_stats
     return stats
