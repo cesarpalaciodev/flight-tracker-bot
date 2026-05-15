@@ -7,11 +7,7 @@ from src.utils import config
 from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT
 
 
-def get_departure_dates(
-    days_ahead_start: int = 7,
-    days_ahead_end: int = 60,
-    interval: int = 7
-) -> list[str]:
+def get_departure_dates(days_ahead_start: int = 7, days_ahead_end: int = 60, interval: int = 7) -> list[str]:
     dates = []
     for i in range(days_ahead_start, days_ahead_end, interval):
         date = datetime.now() + timedelta(days=i)
@@ -20,10 +16,7 @@ def get_departure_dates(
 
 
 def check_prices_and_notify(
-    api: IgnavAPIService,
-    telegram: TelegramService,
-    history: PriceHistory,
-    logger: logging.Logger
+    api: IgnavAPIService, telegram: TelegramService, history: PriceHistory, logger: logging.Logger
 ) -> None:
     results = []
     departure_dates = get_departure_dates(7, 60, 7)
@@ -34,10 +27,7 @@ def check_prices_and_notify(
             route = config.build_route_key(origin, destination)
             logger.info(f"Checking {route} (round-trip, {adults} adults)...")
 
-            flight = api.search_cheapest_round_trip(
-                origin, destination, departure_dates,
-                return_days=5, adults=adults
-            )
+            flight = api.search_cheapest_round_trip(origin, destination, departure_dates, return_days=5, adults=adults)
 
             if not flight:
                 logger.warning(f"No flight found for {route}")
@@ -52,31 +42,26 @@ def check_prices_and_notify(
             if previous is not None:
                 if flight.price < previous - config.PRICE_DROP_THRESHOLD:
                     logger.info(f"PRICE DROPPED! ${previous:,.0f} -> ${flight.price:,.0f}")
-                    telegram.send_flight_alert(
-                        previous,
-                        flight.price,
-                        flight.to_dict(),
-                        booking_link or ""
-                    )
+                    telegram.send_flight_alert(previous, flight.price, flight.to_dict(), booking_link or "")
                     PRICE_ALERTS_SENT.inc()
 
-            history.update_price(route, {
-                "price": flight.price,
-                "last_update": datetime.now().isoformat(),
-                "airline": flight.airline,
-                "booking_link": flight.booking_link
-            })
+            history.update_price(
+                route,
+                {
+                    "price": flight.price,
+                    "last_update": datetime.now().isoformat(),
+                    "airline": flight.airline,
+                    "booking_link": flight.booking_link,
+                },
+            )
 
             results.append((flight, booking_link or ""))
             FLIGHTS_SEARCHED.inc()
             PRICE_CHECKS.inc()
 
     if results:
-        telegram.send_price_summary(results, "Ida y Vuelta")
+        telegram.send_price_summary(results)
         PRICE_ALERTS_SENT.inc()
-
-    if results:
-        telegram.send_price_summary(results, "Ida y Vuelta")
 
 
 def main() -> None:

@@ -22,6 +22,51 @@ def get_db() -> Database:
     return Database(DATABASE_URL)
 
 
+@router.get("/prices")
+async def get_global_prices() -> dict:
+    history = PriceHistory(PRICE_HISTORY_FILE)
+    prices = {}
+    for dest in DESTINATIONS:
+        for origin in ORIGINS:
+            route_key = f"{origin}:{dest}"
+            data = history.data.get(route_key, {})
+            price = data.get("last_price")
+            if price is not None:
+                prices[route_key] = {
+                    "origin": origin,
+                    "destination": dest,
+                    "price": price,
+                    "currency": "COP",
+                    "airline": data.get("airline", ""),
+                    "last_update": data.get("last_update", ""),
+                }
+    return {"timestamp": datetime.now().isoformat(), "routes": prices}
+
+
+@router.get("/price-comparison")
+async def get_price_comparison() -> dict:
+    history = PriceHistory(PRICE_HISTORY_FILE)
+    comparisons = []
+    for dest in DESTINATIONS:
+        for origin in ORIGINS:
+            route_key = f"{origin}:{dest}"
+            price = history.get_last_price(route_key)
+            data = history.data.get(route_key, {})
+            comparisons.append(
+                {
+                    "route": route_key,
+                    "origin": origin,
+                    "destination": dest,
+                    "current_price": price,
+                    "airline": data.get("airline"),
+                    "last_update": data.get("last_update"),
+                    "currency": "COP",
+                }
+            )
+    comparisons.sort(key=lambda x: x["current_price"] or float("inf"))
+    return {"timestamp": datetime.now().isoformat(), "routes": comparisons}
+
+
 @router.get("/metrics")
 async def get_metrics() -> dict:
     try:

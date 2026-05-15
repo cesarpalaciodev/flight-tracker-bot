@@ -27,7 +27,7 @@ def get_current_user(authorization: str = "") -> str:
 async def lifespan(app: FastAPI):
     logger.info("Dashboard v3.0 - Multi-User SaaS starting up...")
     try:
-        metrics_server = get_metrics_server()
+        metrics_server = get_metrics_server(port=9090)
         metrics_server.start()
     except Exception as e:
         logger.warning(f"Metrics server unavailable: {e}")

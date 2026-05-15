@@ -59,9 +59,12 @@ class TelegramService:
                 try:
                     r = requests.post(url, json=payload, timeout=60)
                     if r.status_code == 200:
+                        self.logger.info(f"Message sent to {chat_id}")
                         success = True
                         break
-                except requests.exceptions.RequestException:
+                    self.logger.error(f"Telegram error {r.status_code} for {chat_id}: {r.text[:200]}")
+                except requests.exceptions.RequestException as e:
+                    self.logger.error(f"Request error to {chat_id}: {e}")
                     time.sleep(5)
         return success
 
