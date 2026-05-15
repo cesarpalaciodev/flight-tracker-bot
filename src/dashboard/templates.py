@@ -154,7 +154,25 @@ DASHBOARD_HTML = """
                 <tr><td>Airlines</td><td>${(stats.airlines&&stats.airlines.join(', '))||'N/A'}</td></tr>
                 <tr><td>Flights Searched</td><td>${((stats.metrics_captured||{}).flights_searched)||0}</td></tr>
                 <tr><td>Alerts Sent</td><td>${((stats.metrics_captured||{}).alerts_sent)||0}</td></tr>
+                <tr><td>DB Records</td><td>${((stats.database||{}).total_price_records)||'N/A'}</td></tr>
             `;
+
+            const ab = document.getElementById('alerts-body');
+            ab.innerHTML = '';
+            const alerts = (stats.database && stats.database.recent_alerts) || [];
+            if (alerts.length === 0) {
+                ab.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text2)">No alerts yet</td></tr>';
+            } else {
+                alerts.forEach(a => {
+                    const tr = document.createElement('tr');
+                    const typeClass = a.type === 'price_drop' ? 'text-success' : 'text-danger';
+                    const typeLabel = a.type === 'price_drop' ? 'Price Drop' : 'Price Increase';
+                    const diffStr = a.diff ? '$' + Number(a.diff).toLocaleString('es-CO') : '-';
+                    const timeStr = a.at ? new Date(a.at).toLocaleString() : '-';
+                    tr.innerHTML = `<td class="${typeClass}">${typeLabel}</td><td>${a.route}</td><td>${diffStr}</td><td>${timeStr}</td>`;
+                    ab.appendChild(tr);
+                });
+            }
         }
 
         async function sim(origin, dest) {

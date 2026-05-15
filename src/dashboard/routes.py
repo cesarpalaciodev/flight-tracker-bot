@@ -8,13 +8,12 @@ from src.utils.metrics import (
     FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT,
     CURRENT_PRICES, API_REQUESTS, RATE_LIMIT_HITS,
 )
-from src.models.price_history import PriceHistory
 from src.utils.config import (
-    PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS, DATA_DIR
+    PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS, DATA_DIR, DATABASE_URL
 )
 from src.services.export import export_price_history_csv, get_stats_summary
-from src.models.database import Database
-from src.utils.config import DATABASE_URL
+from src.models.price_history import PriceHistory
+from src.models.database import Database, PriceRecord
 
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
@@ -144,7 +143,8 @@ async def get_statistics() -> dict:
     try:
         db = Database(DATABASE_URL)
         alerts = db.get_alerts(limit=5)
-        db_stats["total_price_records"] = sum(1 for _ in db.get_session().query(db.PriceRecord).limit(1000))
+        with db.get_session() as session:
+            db_stats["total_price_records"] = session.query(PriceRecord).limit(1000).count()
         db_stats["recent_alerts"] = [
             {"type": a.alert_type, "route": a.route, "diff": a.difference,
              "at": a.sent_at.isoformat()} for a in alerts
