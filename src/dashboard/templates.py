@@ -7,14 +7,12 @@ DASHBOARD_HTML = """
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Flight Tracker Dashboard v2</title>
+    <title>Flight Tracker Dashboard v3</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+        :root { --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
             --text: #f8fafc; --text2: #94a3b8;
-            --blue: #3b82f6; --green: #22c55e; --yellow: #f59e0b; --red: #ef4444;
-        }
+            --blue: #3b82f6; --green: #22c55e; --yellow: #f59e0b; --red: #ef4444; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); }
         .header { background: var(--bg2); padding: 1rem 2rem; border-bottom: 1px solid var(--bg3); display: flex; align-items: center; gap: 1rem; }
         .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
@@ -30,6 +28,7 @@ DASHBOARD_HTML = """
         .btn:hover { opacity: .9; }
         .btn-g { background: var(--green); }
         .btn-y { background: var(--yellow); color: #000; }
+        .btn-r { background: var(--red); }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: .75rem; text-align: left; border-bottom: 1px solid var(--bg3); }
         th { color: var(--text2); font-weight: 500; }
@@ -47,74 +46,121 @@ DASHBOARD_HTML = """
         .max-h-400 { max-height: 400px; overflow-y: auto; }
         .text-success { color: var(--green); }
         .text-danger { color: var(--red); }
+        input { background: var(--bg3); border: 1px solid var(--bg3); color: var(--text); padding: .75rem 1rem; border-radius: 8px; width: 100%; font-size: 1rem; }
+        input:focus { outline: none; border-color: var(--blue); }
+        #login { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+        #login .card { max-width: 400px; width: 100%; }
+        #login h2 { margin-bottom: 1.5rem; }
+        #login .btn { width: 100%; margin-top: 1rem; }
+        #logout-btn { cursor: pointer; color: var(--text2); font-size: .875rem; margin-left: auto; }
+        #logout-btn:hover { color: var(--red); }
     </style>
 </head>
 <body>
-    <div class="header">
-        <span class="dot"></span>
-        <h1>Flight Tracker v2</h1>
-        <span style="color:var(--text2);font-size:.875rem;margin-left:auto">
-            <span id="refresh-indicator"></span>
-            <span id="last-api-check" style="margin-left:1rem;color:var(--yellow)"></span>
-        </span>
+    <div id="login">
+        <div class="card">
+            <h2>✈️ Flight Tracker Login</h2>
+            <p style="color:var(--text2);margin-bottom:1.5rem">Ingresa tu Chat ID de Telegram para acceder al dashboard.</p>
+            <input type="text" id="chat-id-input" placeholder="Tu Chat ID (ej: 8116692870)" />
+            <button class="btn" onclick="login()">Ingresar</button>
+            <p style="color:var(--text2);font-size:.875rem;margin-top:1rem;text-align:center">
+                No sabes tu Chat ID? Envía cualquier mensaje a <b>@userinfobot</b> en Telegram.
+            </p>
+        </div>
     </div>
-    <div class="container">
-        <div id="err"></div>
-
-        <div class="grid grid-4 mb2">
-            <div class="card"><div class="lbl">Flights Searched</div><div class="val" id="m-flights">-</div></div>
-            <div class="card"><div class="lbl">Price Checks</div><div class="val" id="m-checks">-</div></div>
-            <div class="card"><div class="lbl">Alerts Sent</div><div class="val" id="m-alerts">-</div></div>
-            <div class="card"><div class="lbl">Rate Limits</div><div class="val" id="m-rl">-</div></div>
+    <div id="dashboard" style="display:none">
+        <div class="header">
+            <span class="dot"></span>
+            <h1>Flight Tracker v3</h1>
+            <span id="username-display" style="color:var(--text2);font-size:.875rem"></span>
+            <span id="logout-btn" onclick="logout()">Cerrar sesión</span>
+            <span style="color:var(--text2);font-size:.875rem;margin-left:auto">
+                <span id="refresh-indicator"></span>
+                <span id="last-api-check" style="margin-left:1rem;color:var(--yellow)"></span>
+            </span>
         </div>
-
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('routes')">Routes</button>
-            <button class="tab" onclick="switchTab('stats')">Statistics</button>
-            <button class="tab" onclick="switchTab('alerts')">Alert History</button>
-        </div>
-
-        <div id="tab-routes">
-            <div class="flex mb2">
-                <button class="btn btn-g" onclick="sim('MDE','ADZ')">Sim MDE→ADZ</button>
-                <button class="btn btn-g" onclick="sim('PEI','ADZ')">Sim PEI→ADZ</button>
-                <button class="btn btn-y" onclick="exportCSV()">Export CSV</button>
-                <span style="color:var(--text2);font-size:.875rem">Auto-refresh every 30s</span>
+        <div class="container">
+            <div id="err"></div>
+            <div class="grid grid-4 mb2">
+                <div class="card"><div class="lbl">Flights Searched</div><div class="val" id="m-flights">-</div></div>
+                <div class="card"><div class="lbl">Price Checks</div><div class="val" id="m-checks">-</div></div>
+                <div class="card"><div class="lbl">Alerts Sent</div><div class="val" id="m-alerts">-</div></div>
+                <div class="card"><div class="lbl">Rate Limits</div><div class="val" id="m-rl">-</div></div>
             </div>
-            <div class="grid" id="route-cards" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:2rem"></div>
-            <div class="card"><h3 style="margin-bottom:1rem">Price Comparison</h3>
-                <div class="max-h-400"><table><thead><tr><th>#</th><th>Route</th><th>Price</th><th>Airline</th><th>Change</th><th>Updated</th></tr></thead>
-                <tbody id="comparison-body"><tr><td colspan="6">Loading...</td></tr></tbody></table></div>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('routes')">Routes</button>
+                <button class="tab" onclick="switchTab('stats')">Statistics</button>
+                <button class="tab" onclick="switchTab('alerts')">Alert History</button>
             </div>
-        </div>
-
-        <div id="tab-stats" style="display:none">
-            <div class="card"><h3 style="margin-bottom:1rem">Price Statistics</h3>
-                <table><tbody id="stats-body"></tbody></table>
+            <div id="tab-routes">
+                <div class="flex mb2">
+                    <button class="btn btn-y" onclick="exportCSV()">Export CSV</button>
+                    <span style="color:var(--text2);font-size:.875rem">Auto-refresh cada 30s</span>
+                </div>
+                <div class="grid" id="route-cards" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:2rem"></div>
+                <div class="card"><h3 style="margin-bottom:1rem">Price Comparison</h3>
+                    <div class="max-h-400"><table><thead><tr><th>#</th><th>Route</th><th>Price</th><th>Airline</th><th>Updated</th></tr></thead>
+                    <tbody id="comparison-body"><tr><td colspan="5">Loading...</td></tr></tbody></table></div>
+                </div>
             </div>
-            <div class="card mt1"><h3 style="margin-bottom:1rem">Price History Chart</h3>
-                <canvas id="priceChart" class="chart"></canvas>
+            <div id="tab-stats" style="display:none">
+                <div class="card"><h3 style="margin-bottom:1rem">Price Statistics</h3>
+                    <table><tbody id="stats-body"></tbody></table>
+                </div>
+                <div class="card mt1"><h3 style="margin-bottom:1rem">Price History Chart</h3>
+                    <canvas id="priceChart" class="chart"></canvas>
+                </div>
             </div>
-        </div>
-
-        <div id="tab-alerts" style="display:none">
-            <div class="card"><h3 style="margin-bottom:1rem">Recent Alerts</h3>
-                <table><thead><tr><th>Type</th><th>Route</th><th>Difference</th><th>Time</th></tr></thead>
-                <tbody id="alerts-body"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+            <div id="tab-alerts" style="display:none">
+                <div class="card"><h3 style="margin-bottom:1rem">Recent Alerts</h3>
+                    <table><thead><tr><th>Type</th><th>Route</th><th>Difference</th><th>Time</th></tr></thead>
+                    <tbody id="alerts-body"><tr><td colspan="4">Loading...</td></tr></tbody></table>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        const API = '/api'; let priceChart = null;
+        const API = '/api'; let priceChart = null; let token = ''; let myChatId = '';
 
-        async function get(path) { try { const r = await fetch(path); return await r.json(); } catch(e) { return null; } }
+        async function login() {
+            const chatId = document.getElementById('chat-id-input').value.trim();
+            if (!chatId) { showErr('Ingresa tu Chat ID'); return; }
+            const r = await fetch(API+'/login?chat_id='+chatId, {method:'POST'});
+            const data = await r.json();
+            if (data.error) { showErr(data.error); return; }
+            token = data.token;
+            myChatId = chatId;
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('username-display').textContent = 'Chat: ' + chatId + ' | Plan: ' + (data.plan||'trial');
+            fetchAll();
+            setInterval(fetchAll, 30000);
+        }
+
+        function logout() {
+            token = ''; myChatId = '';
+            document.getElementById('login').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+
+        async function get(path) {
+            try {
+                const headers = {};
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+                const r = await fetch(path, {headers});
+                if (r.status === 401) { logout(); showErr('Sesión expirada. Ingresa de nuevo.'); return null; }
+                return await r.json();
+            } catch(e) { return null; }
+        }
 
         async function fetchAll() {
-            const [metrics, prices, comp, stats, chartData] = await Promise.all([
-                get(API+'/metrics'), get(API+'/prices'), get(API+'/price-comparison'),
-                get(API+'/statistics'), get(API+'/price-chart?route=MDE:ADZ&chat_id=8116692870')
+            if (!myChatId) return;
+            const [metrics, userData, chartData] = await Promise.all([
+                get(API+'/metrics'),
+                get(API+'/user/'+myChatId),
+                get(API+'/price-chart?route=MDE:ADZ&chat_id='+myChatId)
             ]);
             if (metrics) {
                 document.getElementById('m-flights').textContent = metrics.flights_searched_total||0;
@@ -122,40 +168,66 @@ DASHBOARD_HTML = """
                 document.getElementById('m-alerts').textContent = metrics.price_alerts_sent_total||0;
                 document.getElementById('m-rl').textContent = metrics.rate_limit_hits_total||0;
             }
-            const rc = document.getElementById('route-cards'); rc.innerHTML = '';
-            if (prices && prices.routes) {
-                const allUpdates = Object.values(prices.routes).map(r => r.last_update).filter(Boolean).sort().reverse();
-                const latest = allUpdates[0] || prices.timestamp;
-                document.getElementById('last-api-check').textContent = 'Bot last check: ' + new Date(latest).toLocaleString();
-                Object.values(prices.routes).forEach(r => {
-                    const lastUpdate = r.last_update ? new Date(r.last_update).toLocaleString() : 'Never';
-                    const airline = r.airline || 'N/A';
-                    const d = document.createElement('div'); d.className = 'card';
-                    d.innerHTML = `<div style="font-size:1.25rem;font-weight:600">${r.origin} &rarr; ${r.destination}</div>
-                        <div class="val" style="font-size:2rem;font-weight:700;color:var(--green);margin:.5rem 0">
-                        $${Number(r.price).toLocaleString('es-CO')}</div>
-                        <div style="color:var(--text2);font-size:.875rem">${airline}</div>
-                        <div style="color:var(--text2);font-size:.75rem;margin-top:.5rem">Last update: ${lastUpdate}</div>`;
-                    rc.appendChild(d);
-                });
-                if (Object.values(prices.routes).length === 0) rc.innerHTML = '<p style="color:var(--text2)">No data yet</p>';
+            if (userData) {
+                const sub = userData.subscription || {};
+                document.getElementById('last-api-check').textContent = 'Plan: ' + (sub.plan||'trial') + ' | API: ' + (sub.api_used||0) + '/' + (sub.api_limit||10);
+                renderPrices(userData);
+                renderAlerts(userData);
+                renderStats(userData);
             }
-            const tb = document.getElementById('comparison-body'); tb.innerHTML = '';
-            if (comp && comp.routes) {
-                comp.routes.forEach((r, i) => {
-                    const cls = i===0?'r1':i===1?'r2':i===2?'r3':'';
-                    const badge = i<3 ? `<span class="rk ${cls}">${i+1}</span>` : i+1;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${badge}</td><td>${r.origin}&rarr;${r.destination}</td>
-                        <td style="font-weight:600">$${r.current_price?Number(r.current_price).toLocaleString('es-CO'):'N/A'}</td>
-                        <td>${r.airline||'N/A'}</td>
-                        <td><span class="text-success">-</span></td>
-                        <td style="color:var(--text2);font-size:.875rem">${r.last_update?new Date(r.last_update).toLocaleString():'Never'}</td>`;
-                    tb.appendChild(tr);
-                });
-            }
-            if (stats) renderStats(stats);
             if (chartData) renderChart(chartData);
+        }
+
+        function renderPrices(data) {
+            const rc = document.getElementById('route-cards'); rc.innerHTML = '';
+            const config = data.config || {};
+            const routes = [];
+            (config.origins||'MDE').split(',').forEach(o => {
+                (config.destinations||'ADZ').split(',').forEach(d => {
+                    routes.push({origin:o.trim(), destination:d.trim()});
+                });
+            });
+            const prices = data.prices || [];
+            if (routes.length === 0) { rc.innerHTML = '<p style="color:var(--text2)">No hay rutas configuradas</p>'; return; }
+            routes.forEach(r => {
+                const match = prices.find(p => p.origin===r.origin && p.destination===r.destination);
+                const price = match ? '$' + Number(match.price).toLocaleString('es-CO') : 'Sin datos';
+                const airline = match ? match.airline : '—';
+                const d = document.createElement('div'); d.className = 'card';
+                d.innerHTML = '<div style="font-size:1.25rem;font-weight:600">' + r.origin + ' → ' + r.destination + '</div>' +
+                    '<div class="val" style="font-size:2rem;font-weight:700;color:var(--green);margin:.5rem 0">' + price + '</div>' +
+                    '<div style="color:var(--text2);font-size:.875rem">' + airline + '</div>';
+                rc.appendChild(d);
+            });
+        }
+
+        function renderAlerts(data) {
+            const ab = document.getElementById('alerts-body'); ab.innerHTML = '';
+            const alerts = data.recent_alerts || [];
+            if (alerts.length === 0) {
+                ab.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text2)">No alerts yet</td></tr>';
+            } else {
+                alerts.forEach(a => {
+                    const tr = document.createElement('tr');
+                    const tc = a.type === 'price_drop' ? 'text-success' : 'text-danger';
+                    const tl = a.type === 'price_drop' ? 'Price Drop' : 'Price Increase';
+                    tr.innerHTML = '<td class="' + tc + '">' + tl + '</td><td>' + a.route + '</td><td>$' + (a.diff?Number(a.diff).toLocaleString('es-CO'):'-') + '</td><td>' + new Date(a.time).toLocaleString() + '</td>';
+                    ab.appendChild(tr);
+                });
+            }
+        }
+
+        function renderStats(data) {
+            const b = document.getElementById('stats-body');
+            const sub = data.subscription || {};
+            b.innerHTML = '<tr><td>Plan</td><td>' + (sub.plan||'trial') + '</td></tr>' +
+                '<tr><td>Estado</td><td>' + (sub.status||'active') + '</td></tr>' +
+                '<tr><td>API usadas</td><td>' + (sub.api_used||0) + '/' + (sub.api_limit||10) + '</td></tr>' +
+                '<tr><td>Orígenes</td><td>' + ((data.config||{}).origins||'N/A') + '</td></tr>' +
+                '<tr><td>Destinos</td><td>' + ((data.config||{}).destinations||'N/A') + '</td></tr>' +
+                '<tr><td>Pasajeros</td><td>' + ((data.config||{}).adults||'N/A') + '</td></tr>' +
+                '<tr><td>Equipaje</td><td>' + ((data.config||{}).luggage||'carry_on') + '</td></tr>' +
+                '<tr><td>Presupuesto</td><td>' + ((data.config||{}).max_budget?'$'+Number(data.config.max_budget).toLocaleString('es-CO'):'Sin límite') + '</td></tr>';
         }
 
         function renderChart(data) {
@@ -163,98 +235,33 @@ DASHBOARD_HTML = """
             if (points.length === 0) return;
             const labels = points.map(p => new Date(p.date).toLocaleDateString());
             const values = points.map(p => p.price);
-            const airlines = [...new Set(points.map(p => p.airline))].join(', ');
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             if (priceChart) { priceChart.destroy(); }
             priceChart = new Chart(canvas, {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: data.route + ' (' + airlines + ')',
-                        data: values,
-                        borderColor: '#22c55e',
-                        backgroundColor: 'rgba(34,197,94,0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#22c55e',
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                data: { labels, datasets: [{ label: data.route, data: values, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.3, pointRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { labels: { color: '#94a3b8' } } },
-                    scales: {
-                        x: { ticks: { color: '#94a3b8', maxRotation: 45 }, grid: { color: '#334155' } },
-                        y: { ticks: { color: '#94a3b8', callback: v => '$' + v.toLocaleString('es-CO') }, grid: { color: '#334155' } }
-                    }
-                }
+                    scales: { x: { ticks: { color: '#94a3b8', maxRotation: 45 }, grid: { color: '#334155' } },
+                             y: { ticks: { color: '#94a3b8', callback: v => '$' + v.toLocaleString('es-CO') }, grid: { color: '#334155' } } } }
             });
         }
 
-        function renderStats(stats) {
-            const b = document.getElementById('stats-body');
-            b.innerHTML = `
-                <tr><td>Routes Tracked</td><td>${stats.total_routes||0}</td></tr>
-                <tr><td>Lowest Price</td><td>$${(stats.lowest_price||0).toLocaleString('es-CO')}</td></tr>
-                <tr><td>Highest Price</td><td>$${(stats.highest_price||0).toLocaleString('es-CO')}</td></tr>
-                <tr><td>Avg Price</td><td>$${(stats.average_price||0).toLocaleString('es-CO')}</td></tr>
-                <tr><td>Airlines</td><td>${(stats.airlines&&stats.airlines.join(', '))||'N/A'}</td></tr>
-                <tr><td>Flights Searched</td><td>${((stats.metrics_captured||{}).flights_searched)||0}</td></tr>
-                <tr><td>Alerts Sent</td><td>${((stats.metrics_captured||{}).alerts_sent)||0}</td></tr>
-                <tr><td>DB Records</td><td>${((stats.database||{}).total_price_records)||'N/A'}</td></tr>
-            `;
-
-            const ab = document.getElementById('alerts-body');
-            ab.innerHTML = '';
-            const alerts = (stats.database && stats.database.recent_alerts) || [];
-            if (alerts.length === 0) {
-                ab.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text2)">No alerts yet</td></tr>';
-            } else {
-                alerts.forEach(a => {
-                    const tr = document.createElement('tr');
-                    const typeClass = a.type === 'price_drop' ? 'text-success' : 'text-danger';
-                    const typeLabel = a.type === 'price_drop' ? 'Price Drop' : 'Price Increase';
-                    const diffStr = a.diff ? '$' + Number(a.diff).toLocaleString('es-CO') : '-';
-                    const timeStr = a.at ? new Date(a.at).toLocaleString() : '-';
-                    tr.innerHTML = `<td class="${typeClass}">${typeLabel}</td><td>${a.route}</td><td>${diffStr}</td><td>${timeStr}</td>`;
-                    ab.appendChild(tr);
-                });
-            }
-        }
-
-        async function sim(origin, dest) {
-            const prices = [120000,150000,180000,200000,250000];
-            const airlines = ['Avianca','LATAM','Wingo','JetSMART'];
-            const price = prices[Math.floor(Math.random()*prices.length)];
-            const airline = airlines[Math.floor(Math.random()*airlines.length)];
-            try {
-                const r = await fetch(`${API}/simulate-check?origin=${origin}&destination=${dest}&price=${price}&airline=${airline}`,{method:'POST'});
-                const d = await r.json();
-                if (d.price_drop) alert(`Price drop! Save $${d.price_drop.toLocaleString('es-CO')}`);
-                fetchAll();
-            } catch(e) { showErr('Simulation failed'); }
-        }
-
-        async function exportCSV() { window.open(`${API}/export/csv`, '_blank'); }
+        async function exportCSV() { window.open(API+'/export/csv', '_blank'); }
 
         function showErr(m) {
-            document.getElementById('err').innerHTML = `<div class="err">${m}</div>`;
+            document.getElementById('err').innerHTML = '<div class="err">' + m + '</div>';
             setTimeout(()=>document.getElementById('err').innerHTML='', 5000);
         }
 
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
-            document.getElementById('tab-routes').style.display = tab==='routes'?'':'none';
-            document.getElementById('tab-stats').style.display = tab==='stats'?'':'none';
-            document.getElementById('tab-alerts').style.display = tab==='alerts'?'':'none';
+            ['routes','stats','alerts'].forEach(t => {
+                document.getElementById('tab-'+t).style.display = t===tab ? '' : 'none';
+            });
         }
-
-        fetchAll();
-        setInterval(fetchAll, 30000);
     </script>
 </body>
 </html>

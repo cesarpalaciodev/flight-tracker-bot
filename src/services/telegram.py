@@ -72,8 +72,19 @@ class TelegramService:
         url = f"{self.BASE_URL.format(token=self.token)}/sendMessage"
         try:
             r = requests.post(url, json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode}, timeout=10)
-            return r.status_code == 200
-        except Exception:
+            if r.status_code == 200:
+                self.logger.info(f"Sent to {chat_id}")
+                return True
+            self.logger.error(f"Telegram error {r.status_code} sending to {chat_id}: {r.text[:200]}")
+            return False
+        except requests.exceptions.Timeout:
+            self.logger.warning(f"Timeout sending to {chat_id}")
+            return False
+        except requests.exceptions.ConnectionError as e:
+            self.logger.error(f"Connection error sending to {chat_id}: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error sending to {chat_id}: {e}")
             return False
 
     def listen_commands(self, timeout: int = 30) -> list[dict]:

@@ -112,6 +112,18 @@ async def get_user_data(chat_id: str) -> dict:
         raise HTTPException(status_code=404, detail="User not found")
     sub = db.get_subscription(chat_id)
     alerts = db.get_alerts(chat_id, limit=10)
+    records = db.get_price_history(chat_id, limit=30)
+    seen = {}
+    for r in records:
+        key = f"{r.origin}:{r.destination}"
+        if key not in seen:
+            seen[key] = {
+                "origin": r.origin,
+                "destination": r.destination,
+                "price": r.price,
+                "airline": r.airline,
+                "date": r.checked_at.isoformat(),
+            }
     return {
         "config": {
             "origins": user.origins,
@@ -132,6 +144,7 @@ async def get_user_data(chat_id: str) -> dict:
             {"type": a.alert_type, "route": a.route, "diff": a.difference, "time": a.sent_at.isoformat()}
             for a in alerts
         ],
+        "prices": list(seen.values()),
     }
 
 
