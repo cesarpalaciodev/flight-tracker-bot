@@ -50,7 +50,10 @@ DASHBOARD_HTML = """
     <div class="header">
         <span class="dot"></span>
         <h1>Flight Tracker v2</h1>
-        <span style="color:var(--text2);font-size:.875rem;margin-left:auto" id="refresh-indicator"></span>
+        <span style="color:var(--text2);font-size:.875rem;margin-left:auto">
+            <span id="refresh-indicator"></span>
+            <span id="last-api-check" style="margin-left:1rem;color:var(--yellow)"></span>
+        </span>
     </div>
     <div class="container">
         <div id="err"></div>
@@ -117,12 +120,18 @@ DASHBOARD_HTML = """
             }
             const rc = document.getElementById('route-cards'); rc.innerHTML = '';
             if (prices && prices.routes) {
+                const allUpdates = Object.values(prices.routes).map(r => r.last_update).filter(Boolean).sort().reverse();
+                const latest = allUpdates[0] || prices.timestamp;
+                document.getElementById('last-api-check').textContent = 'Bot last check: ' + new Date(latest).toLocaleString();
                 Object.values(prices.routes).forEach(r => {
+                    const lastUpdate = r.last_update ? new Date(r.last_update).toLocaleString() : 'Never';
+                    const airline = r.airline || 'N/A';
                     const d = document.createElement('div'); d.className = 'card';
                     d.innerHTML = `<div style="font-size:1.25rem;font-weight:600">${r.origin} &rarr; ${r.destination}</div>
                         <div class="val" style="font-size:2rem;font-weight:700;color:var(--green);margin:.5rem 0">
                         $${Number(r.price).toLocaleString('es-CO')}</div>
-                        <div style="color:var(--text2);font-size:.875rem">${r.currency}</div>`;
+                        <div style="color:var(--text2);font-size:.875rem">${airline}</div>
+                        <div style="color:var(--text2);font-size:.75rem;margin-top:.5rem">Last update: ${lastUpdate}</div>`;
                     rc.appendChild(d);
                 });
                 if (Object.values(prices.routes).length === 0) rc.innerHTML = '<p style="color:var(--text2)">No data yet</p>';

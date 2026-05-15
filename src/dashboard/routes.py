@@ -51,11 +51,14 @@ async def get_current_prices() -> dict:
     for dest in DESTINATIONS:
         for origin in ORIGINS:
             route_key = f"{origin}:{dest}"
-            price = history.get_last_price(route_key)
+            data = history.data.get(route_key, {})
+            price = data.get("last_price")
             if price is not None:
                 prices[route_key] = {
                     "origin": origin, "destination": dest,
-                    "price": price, "currency": "COP"
+                    "price": price, "currency": "COP",
+                    "airline": data.get("airline", ""),
+                    "last_update": data.get("last_update", ""),
                 }
     return {"timestamp": datetime.now().isoformat(), "routes": prices}
 
