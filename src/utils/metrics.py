@@ -1,19 +1,96 @@
-from prometheus_client import Counter, Gauge, Histogram, start_http_server
+import json
 import logging
+import os
+import threading
+from pathlib import Path
 from typing import Optional
 
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
-FLIGHTS_SEARCHED = Counter(
+
+_METRICS_FILE = Path(__file__).parent.parent.parent / "data" / "metrics.json"
+_lock = threading.Lock()
+
+
+def _load_persisted() -> dict:
+    try:
+        if _METRICS_FILE.exists():
+            with open(_METRICS_FILE, "r") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _save_persisted(data: dict) -> None:
+    try:
+        _METRICS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(_METRICS_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+
+class PersistentCounter:
+    def __init__(self, name: str, documentation: str, labelnames: tuple = ()):
+        self.name = name
+        self.prom_counter = Counter(name, documentation, labelnames=list(labelnames) if labelnames else [])
+        self._value = 0.0
+        self._labelnames = labelnames
+
+        persisted = _load_persisted()
+        if name in persisted:
+            saved = persisted[name]
+            if isinstance(saved, dict):
+                for labels, val in saved.items():
+                    self._value += val
+                    try:
+                        if labelnames:
+                            self.prom_counter.labels(**eval(labels)).inc(val)
+                        else:
+                            self.prom_counter.inc(val)
+                    except Exception:
+                        self.prom_counter.inc(val)
+            elif isinstance(saved, (int, float)):
+                self._value = saved
+                self.prom_counter.inc(saved)
+
+    def inc(self, amount: float = 1, labels: Optional[dict] = None) -> None:
+        with _lock:
+            self._value += amount
+            try:
+                if labels:
+                    self.prom_counter.labels(**labels).inc(amount)
+                else:
+                    self.prom_counter.inc(amount)
+            except Exception:
+                pass
+
+            persisted = _load_persisted()
+            if labels:
+                label_key = str(sorted(labels.items()))
+                if self.name not in persisted:
+                    persisted[self.name] = {}
+                persisted[self.name][label_key] = persisted[self.name].get(label_key, 0) + amount
+            else:
+                persisted[self.name] = persisted.get(self.name, 0) + amount
+            _save_persisted(persisted)
+
+    def get(self) -> float:
+        return self._value
+
+
+FLIGHTS_SEARCHED = PersistentCounter(
     "flight_tracker_flights_searched_total",
     "Total number of flights searched"
 )
 
-PRICE_CHECKS = Counter(
+PRICE_CHECKS = PersistentCounter(
     "flight_tracker_price_checks_total",
     "Total number of price checks performed"
 )
 
-PRICE_ALERTS_SENT = Counter(
+PRICE_ALERTS_SENT = PersistentCounter(
     "flight_tracker_price_alerts_sent_total",
     "Total number of price drop alerts sent"
 )
@@ -36,14 +113,9 @@ API_LATENCY = Histogram(
     ["endpoint"]
 )
 
-RATE_LIMIT_HITS = Counter(
+RATE_LIMIT_HITS = PersistentCounter(
     "flight_tracker_rate_limit_hits_total",
     "Number of times rate limit was hit"
-)
-
-SERVICE_UPTIME = Gauge(
-    "flight_tracker_uptime_seconds",
-    "Service uptime in seconds"
 )
 
 

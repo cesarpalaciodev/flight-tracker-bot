@@ -31,12 +31,16 @@ def verify_token(authorization: str = Header(None)):
 
 @router.get("/metrics")
 async def get_metrics() -> dict:
+    try:
+        api_total = sum(v._value.get() for v in API_REQUESTS._metrics.values())
+    except Exception:
+        api_total = 0
     return {
-        "flights_searched_total": int(FLIGHTS_SEARCHED._value.get()),
-        "price_checks_total": int(PRICE_CHECKS._value.get()),
-        "price_alerts_sent_total": int(PRICE_ALERTS_SENT._value.get()),
-        "api_requests_total": sum(v._value.get() for v in API_REQUESTS._metrics.values()),
-        "rate_limit_hits_total": int(RATE_LIMIT_HITS._value.get()),
+        "flights_searched_total": int(FLIGHTS_SEARCHED.get()),
+        "price_checks_total": int(PRICE_CHECKS.get()),
+        "price_alerts_sent_total": int(PRICE_ALERTS_SENT.get()),
+        "api_requests_total": api_total,
+        "rate_limit_hits_total": int(RATE_LIMIT_HITS.get()),
     }
 
 

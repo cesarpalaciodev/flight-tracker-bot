@@ -10,6 +10,7 @@ from src.models.database import Database
 from src.utils import config
 from src.utils.cache import PriceCache
 from src.utils.exceptions import FlightTrackerError, handle_api_error
+from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT
 
 
 SENT_PRICE_SUMMARY = False
@@ -92,7 +93,11 @@ def check_prices(
     if results and not SENT_PRICE_SUMMARY:
         logger.info("Sending price summary...")
         telegram.send_price_summary(results, f"{config.ADULTS} adults, {config.RETURN_DAYS} nights")
+        PRICE_ALERTS_SENT.inc()
         SENT_PRICE_SUMMARY = True
+    
+    FLIGHTS_SEARCHED.inc(len(results))
+    PRICE_CHECKS.inc()
 
 
 def run_check(logger: logging.Logger, api: IgnavAPIService, telegram: TelegramService,
