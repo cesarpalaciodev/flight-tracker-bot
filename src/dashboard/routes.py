@@ -224,6 +224,10 @@ async def admin_enable_user(chat_id: str) -> dict:
 async def get_price_chart(route: str = "MDE:ADZ", chat_id: str = "") -> dict:
     try:
         db = get_db()
+        if not chat_id:
+            from src.utils.secrets import ADMIN_CHAT_IDS
+
+            chat_id = ADMIN_CHAT_IDS[0] if ADMIN_CHAT_IDS else ""
         records = db.get_price_history(chat_id, route, limit=50) if chat_id else []
         return {
             "route": route,

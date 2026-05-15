@@ -114,7 +114,7 @@ DASHBOARD_HTML = """
         async function fetchAll() {
             const [metrics, prices, comp, stats, chartData] = await Promise.all([
                 get(API+'/metrics'), get(API+'/prices'), get(API+'/price-comparison'),
-                get(API+'/statistics'), get(API+'/price-chart?route=MDE:ADZ')
+                get(API+'/statistics'), get(API+'/price-chart?route=MDE:ADZ&chat_id=8116692870')
             ]);
             if (metrics) {
                 document.getElementById('m-flights').textContent = metrics.flights_searched_total||0;
