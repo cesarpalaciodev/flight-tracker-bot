@@ -1,5 +1,6 @@
 # Environment
 .env
+.env.local
 *.env
 
 # Data
@@ -9,6 +10,9 @@ data/
 # Logs
 logs/
 *.log
+
+# Exports
+exports/
 
 # Python
 __pycache__/
@@ -35,3 +39,6 @@ Thumbs.db
 venv/
 env/
 .env/
+
+# Database
+*.db

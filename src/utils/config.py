@@ -45,23 +45,35 @@ class TelegramConfig(BaseModel):
         return v.strip()
 
 
+class DatabaseConfig(BaseModel):
+    url: str = Field(default="sqlite:///data/flight_tracker.db")
+    redis_url: str = Field(default="")
+
+
 class AppConfig(BaseModel):
-    destination: str = Field(default="ADZ")
+    destinations: list[str] = Field(default=["ADZ"])
     origins: list[str] = Field(default=["MDE", "PEI"])
     price_drop_threshold: float = Field(default=1.0)
+    price_increase_threshold: float = Field(default=0.0)
     check_interval_hours: int = Field(default=8)
     adults: int = Field(default=2)
     return_days: int = Field(default=5)
     days_ahead_start: int = Field(default=68)
     days_ahead_end: int = Field(default=131)
     days_interval: int = Field(default=14)
+    smtp_server: str = Field(default="")
+    smtp_port: int = Field(default=587)
+    smtp_username: str = Field(default="")
+    smtp_password: str = Field(default="")
+    from_email: str = Field(default="")
+    notify_email: str = Field(default="")
 
-    @field_validator("origins", mode="before")
+    @field_validator("origins", "destinations", mode="before")
     @classmethod
-    def validate_origins(cls, v: list[str] | str) -> list[str]:
+    def validate_list(cls, v: list[str] | str) -> list[str]:
         if isinstance(v, str):
-            return [o.strip() for o in v.split(",")]
-        return v
+            return [x.strip().upper() for x in v.split(",")]
+        return [x.upper() for x in v]
 
     @field_validator("adults")
     @classmethod
@@ -78,40 +90,40 @@ class AppConfig(BaseModel):
         return v
 
 
-def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig]:
+def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig, DatabaseConfig]:
     try:
         api_key = os.getenv("IGNAV_API_KEY", "")
         telegram_token = os.getenv("TELEGRAM_TOKEN", "")
         telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+        db_url = os.getenv("DATABASE_URL", "sqlite:///data/flight_tracker.db")
+        redis_url = os.getenv("REDIS_URL", "")
     except Exception:
-        api_key = ""
-        telegram_token = ""
-        telegram_chat_id = ""
+        api_key = telegram_token = telegram_chat_id = db_url = redis_url = ""
 
-    try:
-        ignav_cfg = IgnavConfig(api_key=api_key)
-    except ValueError:
-        ignav_cfg = IgnavConfig(api_key="")
+    def safe_cfg(cfg_type, **kw):
+        try:
+            return cfg_type(**kw)
+        except ValueError:
+            return cfg_type(**{k: "" for k in kw})
 
-    try:
-        telegram_cfg = TelegramConfig(token=telegram_token, chat_id=telegram_chat_id)
-    except ValueError:
-        telegram_cfg = TelegramConfig(token="", chat_id="")
-
-    app_cfg = AppConfig()
-
-    return ignav_cfg, telegram_cfg, app_cfg
+    return (
+        safe_cfg(IgnavConfig, api_key=api_key),
+        safe_cfg(TelegramConfig, token=telegram_token, chat_id=telegram_chat_id),
+        AppConfig(),
+        DatabaseConfig(url=db_url, redis_url=redis_url),
+    )
 
 
-IGNV_CFG, TELEGRAM_CFG, APP_CFG = _load_config()
+IGNV_CFG, TELEGRAM_CFG, APP_CFG, DB_CFG = _load_config()
 
 API_KEY: str = IGNV_CFG.api_key
 TELEGRAM_TOKEN: str = TELEGRAM_CFG.token
 TELEGRAM_CHAT_ID: str = TELEGRAM_CFG.chat_id
 
-DESTINATION: str = APP_CFG.destination
+DESTINATIONS: list[str] = APP_CFG.destinations
 ORIGINS: list[str] = APP_CFG.origins
 PRICE_DROP_THRESHOLD: float = APP_CFG.price_drop_threshold
+PRICE_INCREASE_THRESHOLD: float = APP_CFG.price_increase_threshold
 CHECK_INTERVAL_HOURS: int = APP_CFG.check_interval_hours
 ADULTS: int = APP_CFG.adults
 RETURN_DAYS: int = APP_CFG.return_days
@@ -119,13 +131,21 @@ DAYS_AHEAD_START: int = APP_CFG.days_ahead_start
 DAYS_AHEAD_END: int = APP_CFG.days_ahead_end
 DAYS_INTERVAL: int = APP_CFG.days_interval
 
+DATABASE_URL: str = DB_CFG.url
+REDIS_URL: str = DB_CFG.redis_url
+
+SMTP_SERVER: str = APP_CFG.smtp_server
+SMTP_PORT: int = APP_CFG.smtp_port
+SMTP_USERNAME: str = APP_CFG.smtp_username
+SMTP_PASSWORD: str = APP_CFG.smtp_password
+FROM_EMAIL: str = APP_CFG.from_email
+NOTIFY_EMAIL: str = APP_CFG.notify_email
+
 PRICE_HISTORY_FILE: Path = BASE_DIR / "data" / "price_history.json"
 LOG_FILE: Path = BASE_DIR / "logs" / "flight_tracker.log"
-
-PRICE_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+DATA_DIR: Path = BASE_DIR / "data"
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-_RATE_LIMIT_FILE: Path = BASE_DIR / "data" / "rate_limit.json"
+_RATE_LIMIT_FILE: Path = DATA_DIR / "rate_limit.json"
 
 
 def setup_logging(name: str = "flight_tracker") -> logging.Logger:

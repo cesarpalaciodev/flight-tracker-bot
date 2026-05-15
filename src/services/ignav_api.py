@@ -155,8 +155,6 @@ class IgnavAPIService:
         if not ignav_id:
             return None
 
-        self._check_rate_limit()
-
         try:
             self.logger.info(f"Getting link for: {ignav_id}")
             response = self.session.post(
@@ -165,7 +163,6 @@ class IgnavAPIService:
                 timeout=15
             )
             self.logger.info(f"Booking link response: {response.status_code}")
-            self.rate_limiter.record_request()
 
             if response.status_code == 200:
                 data = response.json()
