@@ -8,59 +8,58 @@ from datetime import datetime
 from src.utils.config import API_KEY, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
 from src.utils.metrics import get_metrics_server
 from src.dashboard import routes, templates
+from src.dashboard.auth import verify_token
 
 
 logger = logging.getLogger("dashboard")
 
 
+def get_current_user(authorization: str = "") -> str:
+    if authorization.startswith("Bearer "):
+        token = authorization[7:]
+        chat_id = verify_token(token)
+        if chat_id:
+            return chat_id
+    return ""
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Dashboard v2.0 starting up...")
+    logger.info("Dashboard v3.0 - Multi-User SaaS starting up...")
     try:
         metrics_server = get_metrics_server()
         metrics_server.start()
     except Exception as e:
         logger.warning(f"Metrics server unavailable: {e}")
     yield
-    logger.info("Dashboard shutting down...")
 
 
 app = FastAPI(
-    title="Flight Tracker Dashboard v2",
-    description="Multi-destination flight price tracker with Telegram alerts and Dashboard",
-    version="2.0.0",
+    title="Flight Tracker Dashboard v3",
+    description="Multi-user flight tracker SaaS",
+    version="3.0.0",
     lifespan=lifespan,
 )
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
 )
-
 app.include_router(routes.router)
 
 
 @app.get("/", response_class=HTMLResponse)
 async def root() -> Response:
-    html = templates.DASHBOARD_HTML
     return Response(
-        content=html,
+        content=templates.DASHBOARD_HTML,
         media_type="text/html",
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
             "Pragma": "no-cache",
             "Expires": "0",
-        }
+        },
     )
 
 
 @app.get("/health")
 async def health_check() -> dict:
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "2.0.0"
-    }
+    return {"status": "healthy", "timestamp": datetime.now().isoformat(), "version": "3.0.0"}
