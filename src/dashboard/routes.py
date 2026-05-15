@@ -141,6 +141,22 @@ async def export_csv():
     )
 
 
+@router.get("/price-chart")
+async def get_price_chart(route: str = "MDE:ADZ") -> dict:
+    try:
+        db = Database(DATABASE_URL)
+        records = db.get_price_history(route, limit=50)
+        return {
+            "route": route,
+            "points": [
+                {"price": r.price, "date": r.checked_at.isoformat(), "airline": r.airline}
+                for r in records
+            ]
+        }
+    except Exception:
+        return {"route": route, "points": []}
+
+
 @router.get("/statistics")
 async def get_statistics() -> dict:
     history = PriceHistory(PRICE_HISTORY_FILE)

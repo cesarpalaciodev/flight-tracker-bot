@@ -28,17 +28,18 @@ def check_prices_and_notify(
     departure_dates = get_departure_dates(7, 60, 7)
     adults = 2
 
-    for origin in config.ORIGINS:
-        route = config.build_route_key(origin, config.DESTINATION)
-        logger.info(f"Checking {route} (round-trip, {adults} adults)...")
+    for destination in config.DESTINATIONS:
+        for origin in config.ORIGINS:
+            route = config.build_route_key(origin, destination)
+            logger.info(f"Checking {route} (round-trip, {adults} adults)...")
 
-        flight = api.search_cheapest_round_trip(
-            origin,
-            config.DESTINATION,
-            departure_dates,
-            return_days=5,
-            adults=adults
-        )
+            flight = api.search_cheapest_round_trip(
+                origin,
+                destination,
+                departure_dates,
+                return_days=5,
+                adults=adults
+            )
 
         if not flight:
             logger.warning(f"No flight found for {route}")

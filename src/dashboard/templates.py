@@ -109,8 +109,9 @@ DASHBOARD_HTML = """
         async function get(path) { try { const r = await fetch(path); return await r.json(); } catch(e) { return null; } }
 
         async function fetchAll() {
-            const [metrics, prices, comp, stats] = await Promise.all([
-                get(API+'/metrics'), get(API+'/prices'), get(API+'/price-comparison'), get(API+'/statistics')
+            const [metrics, prices, comp, stats, chartData] = await Promise.all([
+                get(API+'/metrics'), get(API+'/prices'), get(API+'/price-comparison'),
+                get(API+'/statistics'), get(API+'/price-chart?route=MDE:ADZ')
             ]);
             if (metrics) {
                 document.getElementById('m-flights').textContent = metrics.flights_searched_total||0;
@@ -151,6 +152,43 @@ DASHBOARD_HTML = """
                 });
             }
             if (stats) renderStats(stats);
+            if (chartData) renderChart(chartData);
+        }
+
+        function renderChart(data) {
+            const points = (data.points||[]).sort((a,b) => new Date(a.date) - new Date(b.date));
+            if (points.length === 0) return;
+            const labels = points.map(p => new Date(p.date).toLocaleDateString());
+            const values = points.map(p => p.price);
+            const airlines = [...new Set(points.map(p => p.airline))].join(', ');
+            const canvas = document.getElementById('priceChart');
+            if (!canvas) return;
+            if (priceChart) { priceChart.destroy(); }
+            priceChart = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: data.route + ' (' + airlines + ')',
+                        data: values,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34,197,94,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#22c55e',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', maxRotation: 45 }, grid: { color: '#334155' } },
+                        y: { ticks: { color: '#94a3b8', callback: v => '$' + v.toLocaleString('es-CO') }, grid: { color: '#334155' } }
+                    }
+                }
+            });
         }
 
         function renderStats(stats) {
