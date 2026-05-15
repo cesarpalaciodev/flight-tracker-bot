@@ -1,32 +1,33 @@
-# Flight Tracker v2.0
+# Flight Tracker v3.0 — Multi-User SaaS
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![FastAPI](https://img.shields.io/badge/dashboard-FastAPI-green)
+![Multi-User](https://img.shields.io/badge/multi--user-SaaS-orange)
+![Stripe](https://img.shields.io/badge/payments-Stripe-purple)
 ![Docker](https://img.shields.io/badge/docker-multi--stage-blue)
 ![DB](https://img.shields.io/badge/database-SQLAlchemy-orange)
 ![Redis](https://img.shields.io/badge/cache-Redis-red)
 ![Tests](https://img.shields.io/badge/tests-pytest-yellow)
 ![Security](https://img.shields.io/badge/security-bandit-black)
 
-Automated flight price tracker with multi-destination support, Telegram alerts, Web Dashboard, Redis cache, and SQLAlchemy database.
+Multi-user flight price tracker SaaS with Telegram bot, onboarding wizard, per-user config, payments (Stripe/Nequi/Crypto), and admin dashboard.
 
 ---
 
 ## Features
 
-- **Multi-destination** — Track any route, customizable origins and destinations
-- **Telegram alerts** — Price drops and price increases detected
-- **Telegram commands** — `/help`, `/config`, `/set_origins`, `/set_destinations`, `/set_adults`, `/set_days`, `/set_threshold`, `/price`, `/stats`
-- **Web Dashboard** — Real-time metrics, price comparison, statistics, CSV export, chart visualization
-- **Database** — SQLAlchemy (SQLite/PostgreSQL), price history, alert log, user configuration
-- **Redis cache** — Fast API response caching with local fallback
-- **Rate limiting** — Built-in API protection (10 req/min, 100 req/hour)
-- **Prometheus metrics** — Flights searched, alerts sent, API requests, rate limit hits
-- **Log sanitization** — API keys, tokens, passwords automatically redacted
-- **CSV export** — One-click price history download from dashboard
-- **Docker** — Multi-stage build, non-root user, health checks
-- **Grafana** — Pre-built dashboard template for metrics visualization
+- **Multi-user** — Each user configures their own origins, destinations, dates, luggage, budget
+- **Telegram onboarding** — 6-step wizard on `/start`
+- **Per-user alerts** — Each user receives only their relevant price drops
+- **Plans** — Free (10 searches), Premium ($5/mo, 500 searches), Pro ($10/mo, unlimited)
+- **7-day free trial** — Auto-expires, user is notified to subscribe
+- **Payments** — Stripe (cards), Nequi (Colombia), Crypto (USDT/BTC)
+- **Data isolation** — Every SQL query has `WHERE chat_id = ?`
+- **Admin panel** — View all users, subscriptions, API usage
+- **JWT auth** — Token-based dashboard authentication
+- **Rate limiting per user** — Each user has their own API request limit
+- **Dashboard** — Per-user prices, alerts, chart, statistics
 
 ---
 
@@ -196,6 +197,54 @@ Redis cache with automatic local fallback. Configure via `REDIS_URL` env variabl
 
 - Flight search results (1h TTL)
 - Booking links (2h TTL)
+
+---
+
+## Plans and Pricing
+
+| Feature | Free (Trial) | Premium ($5/mo) | Pro ($10/mo) |
+|---------|-------------|-----------------|---------------|
+| Searches/mo | 10 | 500 | Unlimited |
+| Routes | 1 | 3 | 10 |
+| Price alerts | ✅ | ✅ | ✅ |
+| SMS alerts | ❌ | ❌ | ✅ |
+| Dashboard | ❌ | ✅ | ✅ |
+| Price history | 7 days | 90 days | Unlimited |
+| **7-day free trial** | — | ✅ | ✅ |
+
+### Payment Methods
+
+| Method | Countries | Status |
+|--------|-----------|--------|
+| **Stripe** (cards) | Worldwide | Implemented |
+| **Nequi** | Colombia | Implemented |
+| **Crypto** (USDT/BTC) | Worldwide | Implemented |
+
+### Subscription Management
+
+Users manage via Telegram: `/subscribe`, `/plan`, `/cancel`
+
+---
+
+## Multi-User Architecture
+
+### Data Isolation
+
+Every record is tagged with `chat_id`. All queries include `WHERE chat_id = ?` to ensure users never see another user's data.
+
+### Bot Engine
+
+```
+For each active user:
+  For each route in user.routes:
+    Search flights per user.preferences
+    Save price with user.chat_id
+    Send alert only to that user
+```
+
+### Admin Panel
+
+Endpoints under `/api/admin/`: users, stats, alerts, disable/enable users.
 
 ---
 
