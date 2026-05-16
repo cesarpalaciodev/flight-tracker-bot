@@ -84,23 +84,21 @@ class PaymentService:
         plan_info = get_plan_features(plan)
         amount = plan_info["price"]
         try:
-            import requests
+            from src.providers.base import BaseProvider
 
-            resp = requests.post(
-                f"{NEQUI_API_URL}/payment",
-                json={
+            provider = BaseProvider(logger)
+            result = provider._post(
+                NEQUI_API_URL + "/payment",
+                json_data={
                     "amount": amount,
                     "currency": "COP",
                     "reference": f"ft_{chat_id}",
                     "description": f"Flight Tracker {plan}",
                 },
-                headers={"Authorization": f"Bearer {NEQUI_API_TOKEN}"},
-                timeout=15,
             )
-            if resp.status_code == 200:
-                data = resp.json()
-                return data.get("payment_url") or data.get("qr_code")
-            logger.error(f"Nequi error: {resp.text}")
+            if result.is_ok and result.data:
+                return result.data.get("payment_url") or result.data.get("qr_code")
+            logger.error(f"Nequi error: {result.error}")
         except Exception as e:
             logger.error(f"Nequi request failed: {e}")
         return None
