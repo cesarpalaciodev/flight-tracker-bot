@@ -2,11 +2,10 @@
 
 import time
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
-from src.utils.exceptions import APIError, APIRateLimited, APITimeout
 from src.utils.logger import get_logger
 
 
@@ -74,12 +73,12 @@ class BaseProvider:
         self,
         method: str,
         url: str,
-        json_data: Optional[dict] = None,
-        params: Optional[dict] = None,
-        timeout: Optional[int] = None,
-        headers: Optional[dict] = None,
+        json_data: dict | None = None,
+        params: dict | None = None,
+        timeout: int | None = None,
+        headers: dict | None = None,
     ) -> ApiResult:
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         for attempt in range(self.MAX_RETRIES):
             try:
                 hdrs = {**(headers or {})}
@@ -121,10 +120,10 @@ class BaseProvider:
 
         return ApiResult.fail(error=str(last_error or "Max retries exceeded"))
 
-    def _get(self, url: str, params: Optional[dict] = None, timeout: Optional[int] = None) -> ApiResult:
+    def _get(self, url: str, params: dict | None = None, timeout: int | None = None) -> ApiResult:
         return self._request("GET", url, params=params, timeout=timeout)
 
-    def _post(self, url: str, json_data: Optional[dict] = None, timeout: Optional[int] = None) -> ApiResult:
+    def _post(self, url: str, json_data: dict | None = None, timeout: int | None = None) -> ApiResult:
         return self._request("POST", url, json_data=json_data, timeout=timeout)
 
     def close(self) -> None:

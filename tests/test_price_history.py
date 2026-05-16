@@ -1,6 +1,5 @@
-import pytest
-import json
 from pathlib import Path
+
 from src.models.price_history import PriceHistory
 
 

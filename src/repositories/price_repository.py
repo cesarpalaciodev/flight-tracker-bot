@@ -1,5 +1,4 @@
-from typing import Optional, List
-from src.models.database import Database, PriceRecord, AlertLog
+from src.models.database import AlertLog, Database, PriceRecord
 
 
 class PriceRepository:
@@ -36,7 +35,7 @@ class PriceRepository:
             budget_match,
         )
 
-    def get_history(self, chat_id: str, route: str = "", limit: int = 30) -> List[PriceRecord]:
+    def get_history(self, chat_id: str, route: str = "", limit: int = 30) -> list[PriceRecord]:
         return self.db.get_price_history(chat_id, route, limit)
 
     def log_alert(
@@ -44,7 +43,7 @@ class PriceRepository:
     ) -> AlertLog:
         return self.db.log_alert(chat_id, route, alert_type, old_price, new_price, difference)
 
-    def get_alerts(self, chat_id: str = "", limit: int = 50) -> List[AlertLog]:
+    def get_alerts(self, chat_id: str = "", limit: int = 50) -> list[AlertLog]:
         return self.db.get_alerts(chat_id, limit)
 
     def get_admin_stats(self) -> dict:

@@ -1,6 +1,6 @@
 """Telegram API provider — all Telegram HTTP calls centralized here."""
 
-from src.providers.base import BaseProvider, ApiResult
+from src.providers.base import ApiResult, BaseProvider
 
 
 class TelegramProvider(BaseProvider):

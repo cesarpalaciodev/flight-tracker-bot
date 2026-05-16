@@ -1,11 +1,9 @@
 import hashlib
 import hmac
-import time
-import jwt
 import os
-from typing import Optional
 from datetime import datetime, timedelta
 
+import jwt
 
 JWT_SECRET = os.getenv("JWT_SECRET", "change_this_in_production")
 JWT_ALGORITHM = "HS256"
@@ -21,7 +19,7 @@ def create_token(chat_id: str) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-def verify_token(token: str) -> Optional[str]:
+def verify_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return payload.get("sub")

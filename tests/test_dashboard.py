@@ -1,19 +1,20 @@
-import pytest
 import json
 import os
 import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
+from pathlib import Path
+from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="function")
 def dashboard_test_db():
-    from src.models.database import Database, Base, UserConfig, Subscription, PriceRecord, AlertLog
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+
+    from src.models.database import AlertLog, Base, Database, PriceRecord, Subscription, UserConfig
 
     db_path = "data/test_flight_tracker.db"
     db_url = f"sqlite:///{db_path}"

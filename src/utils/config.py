@@ -1,10 +1,10 @@
-import os
 import logging
-from pathlib import Path
+import os
 from datetime import datetime, timedelta
+from pathlib import Path
+
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
-
 
 BASE_DIR = Path(__file__).parent.parent.parent
 
@@ -130,7 +130,7 @@ def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig, DatabaseConf
         try:
             return cfg_type(**kw)
         except (ValueError, ValidationError):
-            return cfg_type.model_construct(**{k: "" for k in kw})
+            return cfg_type.model_construct(**dict.fromkeys(kw, ""))
 
     return (
         safe_cfg(IgnavConfig, api_key=api_key),

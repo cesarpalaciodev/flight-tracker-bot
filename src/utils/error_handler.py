@@ -1,8 +1,8 @@
 """Centralized error handling: safe wrappers for async and sync operations."""
 
-import logging
 import traceback
-from typing import Any, Callable, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from src.utils.logger import get_logger
 
@@ -15,7 +15,7 @@ def safe_call(
     fn: Callable[..., T],
     default: T = None,
     log_level: str = "error",
-    context: Optional[dict] = None,
+    context: dict | None = None,
     reraise: bool = False,
     **kwargs,
 ) -> T:
@@ -35,7 +35,7 @@ def safe_call(
         return default
 
 
-def safe_async(coro, default=None, context: Optional[dict] = None, reraise: bool = False) -> Any:
+def safe_async(coro, default=None, context: dict | None = None, reraise: bool = False) -> Any:
     """Wraps an async call with error logging. Not used in this codebase (sync)."""
     return safe_call(lambda: coro, default=default, context=context, reraise=reraise)
 
@@ -43,7 +43,7 @@ def safe_async(coro, default=None, context: Optional[dict] = None, reraise: bool
 class ErrorBoundary:
     """Context manager that catches and logs all exceptions from a block."""
 
-    def __init__(self, context: Optional[dict] = None, reraise: bool = False, logger_name: str = "error_boundary"):
+    def __init__(self, context: dict | None = None, reraise: bool = False, logger_name: str = "error_boundary"):
         self.context = context or {}
         self.reraise = reraise
         self.log = get_logger(logger_name)
@@ -60,7 +60,7 @@ class ErrorBoundary:
         return not self.reraise
 
 
-def silence(exception_types=(Exception,), context: Optional[dict] = None):
+def silence(exception_types=(Exception,), context: dict | None = None):
     """Decorator that catches exceptions from a function and logs them."""
 
     def decorator(fn):

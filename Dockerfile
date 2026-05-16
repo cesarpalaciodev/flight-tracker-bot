@@ -7,27 +7,24 @@ ENV PIP_NO_CACHE_DIR=1
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        gcc \
-        python3-dev \
+        gcc python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
 COPY pyproject.toml requirements.txt ./
 
-RUN pip install --no-cache-dir --prefix=/install \
-        uv \
-    && uv pip install --prefix=/install \
-        --no-cache-dir \
+RUN pip install --no-cache-dir --prefix=/install uv && \
+    uv pip install --prefix=/install --no-cache-dir \
         -r requirements.txt \
         fastapi uvicorn prometheus-client \
-        sqlalchemy redis
+        sqlalchemy redis stripe pyjwt cryptography
 
 # Stage 2: Runtime image
 FROM python:3.12-slim-bookworm
 
-LABEL org.opencontainers.image.title="Flight Tracker v2"
-LABEL org.opencontainers.image.description="Multi-destination flight price tracker with Telegram alerts and Dashboard"
+LABEL org.opencontainers.image.title="Flight Tracker v3"
+LABEL org.opencontainers.image.description="Multi-user flight price tracker SaaS with Telegram bot, Dashboard, and payments"
 LABEL org.opencontainers.image.source="https://github.com/cesarpalaciodev/flight-tracker-bot"
 LABEL org.opencontainers.image.licenses="MIT"
 
@@ -44,11 +41,8 @@ RUN groupadd --gid 1000 appuser && \
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl \
-        dumb-init \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+        ca-certificates curl dumb-init \
+    && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 COPY --from=builder /install /usr/local
 COPY --chown=appuser:appuser . /app
@@ -60,6 +54,5 @@ HEALTHCHECK --interval=30m --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 EXPOSE 8000
-
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["python", "-u", "main_24_7.py"]

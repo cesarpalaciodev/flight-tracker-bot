@@ -1,11 +1,10 @@
 from __future__ import annotations
-from datetime import datetime, timedelta
-from typing import Optional, List
+
 import logging
+from datetime import datetime, timedelta
 
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, JSON, ForeignKey, text
-from sqlalchemy.orm import DeclarativeBase, sessionmaker, relationship
-
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, create_engine
+from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +127,7 @@ class Database:
             session.commit()
             return user
 
-    def get_user_config(self, chat_id: str) -> Optional[UserConfig]:
+    def get_user_config(self, chat_id: str) -> UserConfig | None:
         with self.get_session() as session:
             return session.query(UserConfig).filter(UserConfig.chat_id == chat_id).first()
 
@@ -149,11 +148,11 @@ class Database:
             session.commit()
             return user
 
-    def get_all_active_users(self) -> List[UserConfig]:
+    def get_all_active_users(self) -> list[UserConfig]:
         with self.get_session() as session:
             return session.query(UserConfig).filter(UserConfig.active == 1).all()
 
-    def get_subscription(self, chat_id: str) -> Optional[Subscription]:
+    def get_subscription(self, chat_id: str) -> Subscription | None:
         with self.get_session() as session:
             return session.query(Subscription).filter(Subscription.chat_id == chat_id).first()
 
@@ -206,7 +205,7 @@ class Database:
             session.commit()
             return record
 
-    def get_price_history(self, chat_id: str, route: str = "", limit: int = 30) -> List[PriceRecord]:
+    def get_price_history(self, chat_id: str, route: str = "", limit: int = 30) -> list[PriceRecord]:
         with self.get_session() as session:
             q = session.query(PriceRecord).filter(PriceRecord.chat_id == chat_id)
             if route:
@@ -229,7 +228,7 @@ class Database:
             session.commit()
             return log
 
-    def get_alerts(self, chat_id: str = "", limit: int = 50) -> List[AlertLog]:
+    def get_alerts(self, chat_id: str = "", limit: int = 50) -> list[AlertLog]:
         with self.get_session() as session:
             q = session.query(AlertLog)
             if chat_id:

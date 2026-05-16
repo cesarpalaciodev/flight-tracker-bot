@@ -1,17 +1,15 @@
-from fastapi import APIRouter, HTTPException, Query, Header, Request
-from typing import Optional
-from datetime import datetime
-import logging
 import json
+import logging
+from datetime import datetime
 
-from src.utils.metrics import CURRENT_PRICES, _METRICS_FILE
-from src.utils.config import ADMIN_CHAT_IDS, DATABASE_URL, PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS
-from src.services.export import export_price_history_csv, get_stats_summary
+from fastapi import APIRouter, Header, HTTPException, Query
+
+from src.dashboard.auth import create_token
+from src.models.database import Database, UserConfig
 from src.models.price_history import PriceHistory
-from src.models.database import Database, PriceRecord, UserConfig, AlertLog
-from src.dashboard.auth import create_token, verify_token, verify_webhook_signature
-from src.utils.config import ADMIN_CHAT_IDS, DATABASE_URL, PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS
-
+from src.services.export import get_stats_summary
+from src.utils.config import ADMIN_CHAT_IDS, DATABASE_URL, DESTINATIONS, ORIGINS, PRICE_HISTORY_FILE
+from src.utils.metrics import _METRICS_FILE
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
 logger = logging.getLogger("dashboard_routes")

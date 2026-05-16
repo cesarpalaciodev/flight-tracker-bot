@@ -1,12 +1,9 @@
 import json
 import logging
 import time
-from typing import Optional, Any
+from typing import Any
 
 import redis
-
-from src.utils.exceptions import CacheError
-
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +13,7 @@ class PriceCache:
     PREFIX = "flight_tracker:"
 
     def __init__(self, redis_url: str = ""):
-        self.client: Optional[redis.Redis] = None
+        self.client: redis.Redis | None = None
         self.enabled = bool(redis_url)
         if self.enabled:
             try:
@@ -40,7 +37,7 @@ class PriceCache:
     def _key(self, *parts: str) -> str:
         return f"{self.PREFIX}{':'.join(parts)}"
 
-    def get(self, *parts: str) -> Optional[Any]:
+    def get(self, *parts: str) -> Any | None:
         key = self._key(*parts)
         if self.enabled and self.client:
             try:
@@ -95,13 +92,13 @@ class PriceCache:
         self.set(value, ttl, *parts)
         return value
 
-    def search_result(self, origin: str, destination: str, date: str) -> Optional[dict]:
+    def search_result(self, origin: str, destination: str, date: str) -> dict | None:
         return self.get("search", origin, destination, date)
 
     def set_search_result(self, origin: str, destination: str, date: str, data: dict, ttl: int = DEFAULT_TTL) -> None:
         self.set(data, ttl, "search", origin, destination, date)
 
-    def booking_link(self, ignav_id: str) -> Optional[str]:
+    def booking_link(self, ignav_id: str) -> str | None:
         return self.get("booking", ignav_id)
 
     def set_booking_link(self, ignav_id: str, url: str, ttl: int = 7200) -> None:

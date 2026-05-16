@@ -1,17 +1,15 @@
-import logging
 import time
-from datetime import datetime
 
-from src.models.price_history import PriceHistory
 from src.models.database import Database
-from src.services.ignav_api import IgnavAPIService
-from src.services.telegram import TelegramService
-from src.services.price_service import PriceService
-from src.repositories.user_repository import UserRepository
+from src.models.price_history import PriceHistory
 from src.repositories.price_repository import PriceRepository
-from src.utils.logger import get_logger
+from src.repositories.user_repository import UserRepository
+from src.services.ignav_api import IgnavAPIService
+from src.services.price_service import PriceService
+from src.services.telegram import TelegramService
+from src.utils import config
 from src.utils.cache import PriceCache
-
+from src.utils.logger import get_logger
 
 log = get_logger("main_24_7")
 
@@ -34,7 +32,7 @@ def main() -> None:
     api = IgnavAPIService(config.API_KEY)
     telegram = TelegramService(config.TELEGRAM_TOKEN, config.TELEGRAM_CHAT_ID)
     history = PriceHistory(config.PRICE_HISTORY_FILE)
-    cache = PriceCache(config.REDIS_URL)
+    PriceCache(config.REDIS_URL)
 
     db = None
     try:

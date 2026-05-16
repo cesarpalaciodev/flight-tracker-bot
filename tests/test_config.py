@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
-from src.utils.config import IgnavConfig, TelegramConfig, AppConfig
+
+from src.utils.config import AppConfig, IgnavConfig, TelegramConfig
 
 
 class TestIgnavConfig:

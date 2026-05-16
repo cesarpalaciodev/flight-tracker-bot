@@ -20,7 +20,7 @@ class FlightData:
     inbound_airline: str = ""
     outbound_flight: str = ""
     inbound_flight: str = ""
-    
+
     def to_dict(self) -> dict:
         return {
             "origin": self.origin,
@@ -40,7 +40,7 @@ class FlightData:
             "outbound_flight": self.outbound_flight,
             "inbound_flight": self.inbound_flight
         }
-    
+
     @classmethod
     def from_ignav_response(
         cls,
@@ -52,22 +52,22 @@ class FlightData:
     ) -> Optional["FlightData"]:
         try:
             price_info = data.get("price", {})
-            
+
             outbound = data.get("outbound", {})
             inbound = data.get("inbound", {})
-            
+
             outbound_carrier = outbound.get("carrier", "N/A")
             inbound_carrier = inbound.get("carrier", "N/A")
-            
+
             outbound_segments = outbound.get("segments", [])
             inbound_segments = inbound.get("segments", [])
-            
+
             outbound_flight = outbound_segments[0].get("flight_number", "") if outbound_segments else ""
             inbound_flight = inbound_segments[0].get("flight_number", "") if inbound_segments else ""
-            
+
             outbound_dep = outbound_segments[0] if outbound_segments else {}
             inbound_arr = inbound_segments[-1] if inbound_segments else {}
-            
+
             return cls(
                 origin=origin,
                 destination=destination,
@@ -88,6 +88,6 @@ class FlightData:
             )
         except (KeyError, TypeError, AttributeError):
             return None
-    
+
     def __str__(self) -> str:
         return f"Flight {self.origin} -> {self.destination} | ${self.price:,.0f} {self.currency} | {self.airline}"

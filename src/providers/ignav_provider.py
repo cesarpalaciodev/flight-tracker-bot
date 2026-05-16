@@ -1,6 +1,6 @@
 """Ignav API provider — all Ignav HTTP calls centralized here."""
 
-from src.providers.base import BaseProvider, ApiResult
+from src.providers.base import ApiResult, BaseProvider
 
 
 class IgnavProvider(BaseProvider):

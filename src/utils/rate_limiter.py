@@ -3,7 +3,6 @@ import logging
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 _BASE_DIR = Path(__file__).parent.parent.parent
 _RATE_LIMIT_FILE: Path = _BASE_DIR / "data" / "rate_limit.json"
@@ -19,9 +18,9 @@ class RateLimiter:
     def _load(self) -> dict:
         if _RATE_LIMIT_FILE.exists():
             try:
-                with open(_RATE_LIMIT_FILE, "r", encoding="utf-8") as f:
+                with open(_RATE_LIMIT_FILE, encoding="utf-8") as f:
                     return json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 pass
         return {"requests": [], "daily_count": 0, "last_reset": datetime.now().date().isoformat()}
 
@@ -29,7 +28,7 @@ class RateLimiter:
         try:
             with open(_RATE_LIMIT_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
-        except IOError:
+        except OSError:
             pass
 
     def _clean_old_requests(self) -> None:
@@ -62,7 +61,7 @@ class RateLimiter:
         self.data["daily_count"] += 1
         self._save()
 
-    def wait_if_needed(self, logger: Optional[logging.Logger] = None) -> None:
+    def wait_if_needed(self, logger: logging.Logger | None = None) -> None:
         allowed, msg = self.is_allowed()
         if not allowed:
             if logger:

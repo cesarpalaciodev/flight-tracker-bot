@@ -1,12 +1,11 @@
 """Application error hierarchy with context support."""
 
-from typing import Any, Optional
 
 
 class AppError(Exception):
     """Base application error with context."""
 
-    def __init__(self, message: str, context: Optional[dict] = None, cause: Optional[Exception] = None):
+    def __init__(self, message: str, context: dict | None = None, cause: Exception | None = None):
         super().__init__(message)
         self.message = message
         self.context = context or {}
@@ -42,7 +41,7 @@ class CacheError(AppError):
 class APIError(AppError):
     """External API request failed."""
 
-    def __init__(self, message: str, status_code: Optional[int] = None, response: Optional[str] = None, **kwargs):
+    def __init__(self, message: str, status_code: int | None = None, response: str | None = None, **kwargs):
         ctx = kwargs.pop("context", {})
         ctx.update({"status_code": status_code, "response_preview": (response or "")[:200]})
         super().__init__(message, context=ctx, **kwargs)
@@ -53,7 +52,7 @@ class APIError(AppError):
 class APIRateLimited(APIError):
     """API rate limit exceeded."""
 
-    def __init__(self, retry_after: Optional[int] = None):
+    def __init__(self, retry_after: int | None = None):
         super().__init__("API rate limit exceeded", status_code=429, context={"retry_after": retry_after})
         self.retry_after = retry_after
 
@@ -69,7 +68,7 @@ class APITimeout(APIError):
 class TelegramError(AppError):
     """Telegram message failed."""
 
-    def __init__(self, message: str, status_code: Optional[int] = None):
+    def __init__(self, message: str, status_code: int | None = None):
         super().__init__(message, context={"status_code": status_code})
         self.status_code = status_code
 

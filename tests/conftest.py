@@ -1,9 +1,9 @@
-import pytest
-import json
 import logging
+from datetime import datetime
 from pathlib import Path
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.fixture

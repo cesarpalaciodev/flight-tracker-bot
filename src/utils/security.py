@@ -1,6 +1,6 @@
 import logging
-import re
 import os
+import re
 
 
 class SensitiveDataFilter(logging.Filter):
