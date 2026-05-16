@@ -1,9 +1,8 @@
 import logging
-import time
 from datetime import datetime, timedelta
 from typing import Optional
 
-import requests
+from src.providers.telegram_provider import TelegramProvider
 
 
 AIRLINE_BOOKING_URLS = {
@@ -16,9 +15,6 @@ AIRLINE_BOOKING_URLS = {
 
 
 class TelegramService:
-    BASE_URL = "https://api.telegram.org/bot{token}"
-    TIMEOUT = 30
-
     ONBOARDING_STEPS = [
         {
             "key": "origins",
@@ -34,7 +30,7 @@ class TelegramService:
     def __init__(self, token: str, chat_id: str | list[str] = "", logger: Optional[logging.Logger] = None) -> None:
         if not token:
             raise ValueError("Telegram token is required")
-        self.token = token
+        self.provider = TelegramProvider(token, logger)
         self.chat_ids: list[str] = (
             [chat_id]
             if isinstance(chat_id, str) and chat_id
@@ -50,71 +46,45 @@ class TelegramService:
             self.chat_ids.append(chat_id)
 
     def send_message(self, text: str, parse_mode: str = "HTML", retries: int = 3) -> bool:
-        url = f"{self.BASE_URL.format(token=self.token)}/sendMessage"
-        payload = {"text": text, "parse_mode": parse_mode}
         success = False
         for chat_id in self.chat_ids:
-            payload["chat_id"] = chat_id
-            for _ in range(retries):
-                try:
-                    r = requests.post(url, json=payload, timeout=60)
-                    if r.status_code == 200:
-                        self.logger.info(f"Message sent to {chat_id}")
-                        success = True
-                        break
-                    self.logger.error(f"Telegram error {r.status_code} for {chat_id}: {r.text[:200]}")
-                except requests.exceptions.RequestException as e:
-                    self.logger.error(f"Request error to {chat_id}: {e}")
-                    time.sleep(5)
+            result = self.provider.send_message(chat_id, text, parse_mode)
+            if result.is_ok:
+                self.logger.info(f"Message sent to {chat_id}")
+                success = True
+            else:
+                self.logger.error(f"Telegram error for {chat_id}: {result.error}")
         return success
 
     def send_to(self, chat_id: str, text: str, parse_mode: str = "HTML") -> bool:
-        url = f"{self.BASE_URL.format(token=self.token)}/sendMessage"
-        try:
-            r = requests.post(url, json={"chat_id": chat_id, "text": text, "parse_mode": parse_mode}, timeout=10)
-            if r.status_code == 200:
-                self.logger.info(f"Sent to {chat_id}")
-                return True
-            self.logger.error(f"Telegram error {r.status_code} sending to {chat_id}: {r.text[:200]}")
-            return False
-        except requests.exceptions.Timeout:
-            self.logger.warning(f"Timeout sending to {chat_id}")
-            return False
-        except requests.exceptions.ConnectionError as e:
-            self.logger.error(f"Connection error sending to {chat_id}: {e}")
-            return False
-        except Exception as e:
-            self.logger.error(f"Unexpected error sending to {chat_id}: {e}")
-            return False
+        result = self.provider.send_message(chat_id, text, parse_mode)
+        if result.is_ok:
+            self.logger.info(f"Sent to {chat_id}")
+            return True
+        self.logger.error(f"Telegram error sending to {chat_id}: {result.error}")
+        return False
 
     def listen_commands(self, timeout: int = 30) -> list[dict]:
-        url = f"{self.BASE_URL.format(token=self.token)}/getUpdates"
-        try:
-            resp = requests.get(
-                url, params={"offset": self._last_update_id + 1, "timeout": timeout}, timeout=timeout + 5
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                commands = []
-                for update in data.get("result", []):
-                    self._last_update_id = update["update_id"]
-                    msg = update.get("message", {})
-                    text = msg.get("text", "").strip()
-                    chat_id = str(msg["chat"]["id"])
-                    if chat_id not in self.chat_ids:
-                        self.chat_ids.append(chat_id)
-                    commands.append(
-                        {
-                            "chat_id": chat_id,
-                            "text": text,
-                            "command": text.split()[0].lower() if text.startswith("/") else "",
-                            "args": text.split()[1:] if text.startswith("/") else [],
-                            "from": msg.get("from", {}),
-                        }
-                    )
-                return commands
-        except Exception as e:
-            self.logger.debug(f"GetUpdates failed: {e}")
+        result = self.provider.get_updates(self._last_update_id, timeout)
+        if result.is_ok and result.data:
+            commands = []
+            for update in result.data.get("result", []):
+                self._last_update_id = update["update_id"]
+                msg = update.get("message", {})
+                text = msg.get("text", "").strip()
+                chat_id = str(msg["chat"]["id"])
+                if chat_id not in self.chat_ids:
+                    self.chat_ids.append(chat_id)
+                commands.append(
+                    {
+                        "chat_id": chat_id,
+                        "text": text,
+                        "command": text.split()[0].lower() if text.startswith("/") else "",
+                        "args": text.split()[1:] if text.startswith("/") else [],
+                        "from": msg.get("from", {}),
+                    }
+                )
+            return commands
         return []
 
     def handle_onboarding(self, chat_id: str, text: str, db) -> Optional[str]:
