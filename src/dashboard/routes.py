@@ -4,14 +4,13 @@ from datetime import datetime
 import logging
 import json
 
-from src.utils.metrics import CURRENT_PRICES
-from src.utils.config import PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS, DATABASE_URL
-from src.utils.metrics import _METRICS_FILE
+from src.utils.metrics import CURRENT_PRICES, _METRICS_FILE
+from src.utils.config import ADMIN_CHAT_IDS, DATABASE_URL, PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS
 from src.services.export import export_price_history_csv, get_stats_summary
 from src.models.price_history import PriceHistory
 from src.models.database import Database, PriceRecord, UserConfig, AlertLog
 from src.dashboard.auth import create_token, verify_token, verify_webhook_signature
-from src.utils.secrets import ADMIN_CHAT_IDS
+from src.utils.config import ADMIN_CHAT_IDS, DATABASE_URL, PRICE_HISTORY_FILE, ORIGINS, DESTINATIONS
 
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
@@ -238,8 +237,6 @@ async def get_price_chart(route: str = "MDE:ADZ", chat_id: str = "") -> dict:
     try:
         db = get_db()
         if not chat_id:
-            from src.utils.secrets import ADMIN_CHAT_IDS
-
             chat_id = ADMIN_CHAT_IDS[0] if ADMIN_CHAT_IDS else ""
         records = db.get_price_history(chat_id, route, limit=50) if chat_id else []
         return {

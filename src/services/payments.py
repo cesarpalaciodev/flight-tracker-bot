@@ -1,21 +1,21 @@
 import stripe
 import logging
-import os
 from typing import Optional
 from datetime import datetime
 
+from src.utils.config import (
+    STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_PREMIUM,
+    STRIPE_PRICE_PRO,
+    NEQUI_API_URL,
+    NEQUI_API_TOKEN,
+    CRYPTO_WALLET_USDT,
+    CRYPTO_WALLET_BTC,
+)
+
+
 logger = logging.getLogger(__name__)
-
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-STRIPE_PRICE_PREMIUM = os.getenv("STRIPE_PRICE_PREMIUM", "")  # price_id for $5/month
-STRIPE_PRICE_PRO = os.getenv("STRIPE_PRICE_PRO", "")  # price_id for $10/month
-
-NEQUI_API_URL = os.getenv("NEQUI_API_URL", "")
-NEQUI_API_TOKEN = os.getenv("NEQUI_API_TOKEN", "")
-
-CRYPTO_WALLET_USDT = os.getenv("CRYPTO_WALLET_USDT", "")
-CRYPTO_WALLET_BTC = os.getenv("CRYPTO_WALLET_BTC", "")
 
 PLANS = {
     "premium": {"price": 5, "searches": 500, "routes": 3, "dashboard": True, "price_id_stripe": STRIPE_PRICE_PREMIUM},

@@ -50,6 +50,30 @@ class DatabaseConfig(BaseModel):
     redis_url: str = Field(default="")
 
 
+class SecurityConfig(BaseModel):
+    jwt_secret: str = Field(default="change_this")
+    dashboard_url: str = Field(default="http://localhost:8000")
+    admin_chat_ids: list[str] = Field(default=[])
+    stripe_secret_key: str = Field(default="")
+    stripe_webhook_secret: str = Field(default="")
+    stripe_price_premium: str = Field(default="")
+    stripe_price_pro: str = Field(default="")
+    nequi_api_url: str = Field(default="")
+    nequi_api_token: str = Field(default="")
+    crypto_wallet_usdt: str = Field(default="")
+    crypto_wallet_btc: str = Field(default="")
+    api_requests_limit_free: int = Field(default=10)
+    api_requests_limit_premium: int = Field(default=500)
+    api_requests_limit_pro: int = Field(default=-1)
+
+    @field_validator("admin_chat_ids", mode="before")
+    @classmethod
+    def validate_admin_chat_ids(cls, v: list[str] | str) -> list[str]:
+        if isinstance(v, str):
+            return [x.strip() for x in v.split(",") if x.strip()]
+        return v
+
+
 class AppConfig(BaseModel):
     destinations: list[str] = Field(default=["ADZ"])
     origins: list[str] = Field(default=["MDE", "PEI"])
@@ -90,7 +114,7 @@ class AppConfig(BaseModel):
         return v
 
 
-def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig, DatabaseConfig]:
+def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig, DatabaseConfig, SecurityConfig]:
     try:
         api_key = os.getenv("IGNAV_API_KEY", "")
         telegram_token = os.getenv("TELEGRAM_TOKEN", "")
@@ -101,7 +125,7 @@ def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig, DatabaseConf
         api_key = telegram_token = telegram_chat_id = db_url = redis_url = ""
 
     from pydantic import ValidationError
-    
+
     def safe_cfg(cfg_type, **kw):
         try:
             return cfg_type(**kw)
@@ -113,10 +137,26 @@ def _load_config() -> tuple[IgnavConfig, TelegramConfig, AppConfig, DatabaseConf
         safe_cfg(TelegramConfig, token=telegram_token, chat_id=telegram_chat_id),
         AppConfig(),
         DatabaseConfig(url=db_url, redis_url=redis_url),
+        SecurityConfig(
+            jwt_secret=os.getenv("JWT_SECRET", "change_this"),
+            dashboard_url=os.getenv("DASHBOARD_URL", "http://localhost:8000"),
+            admin_chat_ids=os.getenv("ADMIN_CHAT_IDS", ""),
+            stripe_secret_key=os.getenv("STRIPE_SECRET_KEY", ""),
+            stripe_webhook_secret=os.getenv("STRIPE_WEBHOOK_SECRET", ""),
+            stripe_price_premium=os.getenv("STRIPE_PRICE_PREMIUM", ""),
+            stripe_price_pro=os.getenv("STRIPE_PRICE_PRO", ""),
+            nequi_api_url=os.getenv("NEQUI_API_URL", ""),
+            nequi_api_token=os.getenv("NEQUI_API_TOKEN", ""),
+            crypto_wallet_usdt=os.getenv("CRYPTO_WALLET_USDT", ""),
+            crypto_wallet_btc=os.getenv("CRYPTO_WALLET_BTC", ""),
+            api_requests_limit_free=int(os.getenv("API_REQUESTS_LIMIT_FREE", "10")),
+            api_requests_limit_premium=int(os.getenv("API_REQUESTS_LIMIT_PREMIUM", "500")),
+            api_requests_limit_pro=int(os.getenv("API_REQUESTS_LIMIT_PRO", "-1")),
+        ),
     )
 
 
-IGNV_CFG, TELEGRAM_CFG, APP_CFG, DB_CFG = _load_config()
+IGNV_CFG, TELEGRAM_CFG, APP_CFG, DB_CFG, SEC_CFG = _load_config()
 
 API_KEY: str = IGNV_CFG.api_key
 TELEGRAM_TOKEN: str = TELEGRAM_CFG.token
@@ -143,6 +183,21 @@ SMTP_PASSWORD: str = APP_CFG.smtp_password
 FROM_EMAIL: str = APP_CFG.from_email
 NOTIFY_EMAIL: str = APP_CFG.notify_email
 
+JWT_SECRET: str = SEC_CFG.jwt_secret
+DASHBOARD_URL: str = SEC_CFG.dashboard_url
+ADMIN_CHAT_IDS: list[str] = SEC_CFG.admin_chat_ids
+STRIPE_SECRET_KEY: str = SEC_CFG.stripe_secret_key
+STRIPE_WEBHOOK_SECRET: str = SEC_CFG.stripe_webhook_secret
+STRIPE_PRICE_PREMIUM: str = SEC_CFG.stripe_price_premium
+STRIPE_PRICE_PRO: str = SEC_CFG.stripe_price_pro
+NEQUI_API_URL: str = SEC_CFG.nequi_api_url
+NEQUI_API_TOKEN: str = SEC_CFG.nequi_api_token
+CRYPTO_WALLET_USDT: str = SEC_CFG.crypto_wallet_usdt
+CRYPTO_WALLET_BTC: str = SEC_CFG.crypto_wallet_btc
+API_REQUESTS_LIMIT_FREE: int = SEC_CFG.api_requests_limit_free
+API_REQUESTS_LIMIT_PREMIUM: int = SEC_CFG.api_requests_limit_premium
+API_REQUESTS_LIMIT_PRO: int = SEC_CFG.api_requests_limit_pro
+
 PRICE_HISTORY_FILE: Path = BASE_DIR / "data" / "price_history.json"
 LOG_FILE: Path = BASE_DIR / "logs" / "flight_tracker.log"
 DATA_DIR: Path = BASE_DIR / "data"
@@ -156,10 +211,7 @@ def setup_logging(name: str = "flight_tracker") -> logging.Logger:
         return logger
     logger.setLevel(logging.INFO)
 
-    formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
+    formatter = logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
     file_handler = logging.FileHandler(LOG_FILE)
     file_handler.setFormatter(formatter)
