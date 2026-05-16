@@ -1,8 +1,5 @@
 """Telegram API provider — all Telegram HTTP calls centralized here."""
 
-import logging
-from typing import Optional
-
 from src.providers.base import BaseProvider, ApiResult
 
 
@@ -10,9 +7,10 @@ class TelegramProvider(BaseProvider):
     DEFAULT_TIMEOUT = 10
     MAX_RETRIES = 3
     RETRY_DELAY = 5
+    PROVIDER_NAME = "telegram"
 
-    def __init__(self, token: str, logger_obj: Optional[logging.Logger] = None):
-        super().__init__(logger_obj)
+    def __init__(self, token: str):
+        super().__init__()
         self.token = token
         self.BASE_URL = f"https://api.telegram.org/bot{token}"
 

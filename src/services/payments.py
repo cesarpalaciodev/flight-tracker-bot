@@ -86,7 +86,7 @@ class PaymentService:
         try:
             from src.providers.base import BaseProvider
 
-            provider = BaseProvider(logger)
+            provider = BaseProvider()
             result = provider._post(
                 NEQUI_API_URL + "/payment",
                 json_data={

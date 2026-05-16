@@ -1,16 +1,13 @@
 """Base provider for external API calls with retry, rate limiting, and error normalization."""
 
-import logging
 import time
 from enum import Enum
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Optional
 
 import requests
 
 from src.utils.exceptions import APIError, APIRateLimited, APITimeout
-
-
-T = TypeVar("T")
+from src.utils.logger import get_logger
 
 
 class ApiStatus(Enum):
@@ -59,14 +56,12 @@ class BaseProvider:
     MAX_RETRIES = 3
     RETRY_DELAY = 2
     RATE_LIMIT_WAIT = 60
+    PROVIDER_NAME = "base"
 
-    def __init__(self, logger_obj: Optional[logging.Logger] = None):
-        self.logger = logger_obj or logging.getLogger(self.__class__.__name__)
+    def __init__(self):
+        self.log = get_logger(f"provider.{self.PROVIDER_NAME}")
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
-
-    def _url(self, path: str) -> str:
-        return f"{self.BASE_URL}{path}"
 
     def _classify_error(self, response: requests.Response) -> ApiResult:
         if response.status_code == 429:
@@ -99,14 +94,14 @@ class BaseProvider:
                 if resp.status_code == 200:
                     return ApiResult.ok(data=resp.json(), status_code=200)
                 if resp.status_code in (429, 503):
-                    self.logger.warning(f"Rate limited on {url}, waiting {self.RATE_LIMIT_WAIT}s")
+                    self.log.warning(f"Rate limited on {url}, waiting {self.RATE_LIMIT_WAIT}s")
                     time.sleep(self.RATE_LIMIT_WAIT)
                     continue
                 return self._classify_error(resp)
 
             except requests.exceptions.Timeout as e:
                 last_error = e
-                self.logger.warning(f"Timeout on {url} (attempt {attempt + 1}/{self.MAX_RETRIES})")
+                self.log.warning(f"Timeout on {url} (attempt {attempt + 1}/{self.MAX_RETRIES})")
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(self.RETRY_DELAY * (attempt + 1))
                     continue
@@ -114,14 +109,14 @@ class BaseProvider:
 
             except requests.exceptions.ConnectionError as e:
                 last_error = e
-                self.logger.warning(f"Connection error on {url} (attempt {attempt + 1}/{self.MAX_RETRIES}): {e}")
+                self.log.warning(f"Connection error on {url} (attempt {attempt + 1}/{self.MAX_RETRIES}): {e}")
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(self.RETRY_DELAY * (attempt + 1))
                     continue
                 return ApiResult.fail(error=str(e))
 
             except requests.exceptions.RequestException as e:
-                self.logger.error(f"Request failed on {url}: {e}")
+                self.log.error(f"Request failed on {url}: {e}")
                 return ApiResult.fail(error=str(e))
 
         return ApiResult.fail(error=str(last_error or "Max retries exceeded"))

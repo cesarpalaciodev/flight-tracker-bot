@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from src.providers.telegram_provider import TelegramProvider
+from src.utils.logger import get_logger
 
 
 AIRLINE_BOOKING_URLS = {
@@ -27,10 +28,10 @@ class TelegramService:
         {"key": "non_stop", "question": "Paso 6/6: ¿Solo vuelos directos? (sí/no)"},
     ]
 
-    def __init__(self, token: str, chat_id: str | list[str] = "", logger: Optional[logging.Logger] = None) -> None:
+    def __init__(self, token: str, chat_id: str | list[str] = "") -> None:
         if not token:
             raise ValueError("Telegram token is required")
-        self.provider = TelegramProvider(token, logger)
+        self.provider = TelegramProvider(token)
         self.chat_ids: list[str] = (
             [chat_id]
             if isinstance(chat_id, str) and chat_id
@@ -38,7 +39,7 @@ class TelegramService:
             if chat_id
             else []
         )
-        self.logger = logger or logging.getLogger(__name__)
+        self.log = get_logger("telegram")
         self._last_update_id = 0
 
     def add_chat(self, chat_id: str) -> None:
@@ -50,18 +51,18 @@ class TelegramService:
         for chat_id in self.chat_ids:
             result = self.provider.send_message(chat_id, text, parse_mode)
             if result.is_ok:
-                self.logger.info(f"Message sent to {chat_id}")
+                self.log.info(f"Message sent to {chat_id}")
                 success = True
             else:
-                self.logger.error(f"Telegram error for {chat_id}: {result.error}")
+                self.log.error(f"Telegram error for {chat_id}: {result.error}")
         return success
 
     def send_to(self, chat_id: str, text: str, parse_mode: str = "HTML") -> bool:
         result = self.provider.send_message(chat_id, text, parse_mode)
         if result.is_ok:
-            self.logger.info(f"Sent to {chat_id}")
+            self.log.info(f"Sent to {chat_id}")
             return True
-        self.logger.error(f"Telegram error sending to {chat_id}: {result.error}")
+        self.log.error(f"Telegram error sending to {chat_id}: {result.error}")
         return False
 
     def listen_commands(self, timeout: int = 30) -> list[dict]:
