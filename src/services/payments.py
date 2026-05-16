@@ -1,19 +1,18 @@
-import stripe
 import logging
-from typing import Optional
 from datetime import datetime
 
+import stripe
+
 from src.utils.config import (
-    STRIPE_SECRET_KEY,
-    STRIPE_WEBHOOK_SECRET,
+    CRYPTO_WALLET_BTC,
+    CRYPTO_WALLET_USDT,
+    NEQUI_API_TOKEN,
+    NEQUI_API_URL,
     STRIPE_PRICE_PREMIUM,
     STRIPE_PRICE_PRO,
-    NEQUI_API_URL,
-    NEQUI_API_TOKEN,
-    CRYPTO_WALLET_USDT,
-    CRYPTO_WALLET_BTC,
+    STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class PaymentService:
         if self.stripe_available:
             stripe.api_key = STRIPE_SECRET_KEY
 
-    def create_stripe_checkout(self, chat_id: str, plan: str, success_url: str, cancel_url: str) -> Optional[str]:
+    def create_stripe_checkout(self, chat_id: str, plan: str, success_url: str, cancel_url: str) -> str | None:
         if not self.stripe_available:
             logger.warning("Stripe not configured")
             return None
@@ -67,7 +66,7 @@ class PaymentService:
             logger.error(f"Stripe checkout error: {e}")
             return None
 
-    def verify_stripe_webhook(self, payload: bytes, sig_header: str) -> Optional[dict]:
+    def verify_stripe_webhook(self, payload: bytes, sig_header: str) -> dict | None:
         if not self.stripe_available:
             return None
         try:
@@ -77,7 +76,7 @@ class PaymentService:
             logger.error(f"Stripe webhook verification failed: {e}")
             return None
 
-    def create_nequi_payment(self, chat_id: str, plan: str) -> Optional[str]:
+    def create_nequi_payment(self, chat_id: str, plan: str) -> str | None:
         if not self.nequi_available:
             logger.warning("Nequi not configured")
             return None
@@ -103,7 +102,7 @@ class PaymentService:
             logger.error(f"Nequi request failed: {e}")
         return None
 
-    def create_crypto_payment(self, chat_id: str, plan: str, currency: str = "USDT") -> Optional[dict]:
+    def create_crypto_payment(self, chat_id: str, plan: str, currency: str = "USDT") -> dict | None:
         if not self.crypto_available:
             logger.warning("Crypto not configured")
             return None

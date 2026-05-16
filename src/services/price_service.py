@@ -2,16 +2,14 @@ import time
 from datetime import datetime, timedelta
 
 from src.models.price_history import PriceHistory
+from src.repositories.price_repository import PriceRepository
+from src.repositories.user_repository import UserRepository
 from src.services.ignav_api import IgnavAPIService
 from src.services.telegram import TelegramService
-from src.repositories.user_repository import UserRepository
-from src.repositories.price_repository import PriceRepository
 from src.utils import config
-from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT
-from src.utils.logger import get_logger
 from src.utils.error_handler import ErrorBoundary
-from src.utils.exceptions import AppError, PriceAlertError
-
+from src.utils.logger import get_logger
+from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_ALERTS_SENT
 
 log = get_logger("price_service")
 

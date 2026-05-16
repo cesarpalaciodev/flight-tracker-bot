@@ -1,8 +1,9 @@
-import pytest
-import logging
 from unittest.mock import MagicMock, patch
-from src.services.ignav_api import IgnavAPIService
+
+import pytest
+
 from src.models.flight import FlightData
+from src.services.ignav_api import IgnavAPIService
 
 
 class TestIgnavAPIService:

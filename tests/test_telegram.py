@@ -1,6 +1,5 @@
-import pytest
-import logging
 from unittest.mock import MagicMock, patch
+
 from src.services.telegram import TelegramService
 
 

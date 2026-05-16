@@ -1,10 +1,7 @@
-import logging
 from datetime import datetime, timedelta
-from typing import Optional
 
 from src.providers.telegram_provider import TelegramProvider
 from src.utils.logger import get_logger
-
 
 AIRLINE_BOOKING_URLS = {
     "Avianca": "https://www.avianca.com/booking",
@@ -88,7 +85,7 @@ class TelegramService:
             return commands
         return []
 
-    def handle_onboarding(self, chat_id: str, text: str, db) -> Optional[str]:
+    def handle_onboarding(self, chat_id: str, text: str, db) -> str | None:
         user = db.get_or_create_user(chat_id)
         step = user.onboarding_step
         if step == 0:
@@ -350,8 +347,8 @@ class TelegramService:
         methods = ps.get_available_methods()
         text = (
             "💳 <b>Elige tu plan y método de pago</b>\n\n"
-            f"1️⃣ <b>Premium ($5/mes)</b> — 500 búsquedas, 3 rutas\n"
-            f"2️⃣ <b>Pro ($10/mes)</b> — Ilimitado, 10 rutas + SMS\n\n"
+            "1️⃣ <b>Premium ($5/mes)</b> — 500 búsquedas, 3 rutas\n"
+            "2️⃣ <b>Pro ($10/mes)</b> — Ilimitado, 10 rutas + SMS\n\n"
             "Responde con:\n"
             "/pay premium stripe\n"
             "/pay premium nequi\n"
@@ -368,8 +365,8 @@ class TelegramService:
         if not user:
             self.send_to(chat_id, "❌ Usa /start para registrarte.")
             return
-        origins = [o.strip() for o in user.origins.split(",")]
-        dests = [d.strip() for d in user.destinations.split(",")]
+        [o.strip() for o in user.origins.split(",")]
+        [d.strip() for d in user.destinations.split(",")]
         records = db.get_price_history(chat_id, limit=20)
         if not records:
             self.send_to(chat_id, "📊 Aún no hay datos. El bot buscará pronto.")
@@ -384,7 +381,7 @@ class TelegramService:
         self.send_to(chat_id, text)
 
     def _send_user_stats(self, chat_id: str, db) -> None:
-        user = db.get_user_config(chat_id)
+        db.get_user_config(chat_id)
         sub = db.get_subscription(chat_id) if chat_id else None
         records = db.get_price_history(chat_id, limit=5)
         prices = [r.price for r in records if r.price]

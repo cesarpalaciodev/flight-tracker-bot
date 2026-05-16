@@ -6,7 +6,6 @@ import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 
 class JsonFormatter(logging.Formatter):
@@ -39,7 +38,7 @@ class JsonFormatter(logging.Formatter):
 class ContextLogger:
     """Logger wrapper that injects context into every log call."""
 
-    def __init__(self, name: str, context: Optional[dict] = None):
+    def __init__(self, name: str, context: dict | None = None):
         self._logger = logging.getLogger(name)
         self._context = context or {}
 
@@ -75,7 +74,7 @@ class ContextLogger:
 
 def setup_logging(
     name: str = "flight_tracker",
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
     json_output: bool = True,
 ) -> logging.Logger:
     logger = logging.getLogger(name)
@@ -106,5 +105,5 @@ def setup_logging(
     return logger
 
 
-def get_logger(name: str, context: Optional[dict] = None) -> ContextLogger:
+def get_logger(name: str, context: dict | None = None) -> ContextLogger:
     return ContextLogger(name, context)

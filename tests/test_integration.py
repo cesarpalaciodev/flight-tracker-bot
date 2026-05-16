@@ -1,34 +1,24 @@
-import pytest
-import logging
-from datetime import datetime, timedelta
+from pathlib import Path
 from unittest.mock import MagicMock, patch
-from src.models.price_history import PriceHistory
+
+import pytest
+
 from src.models.flight import FlightData
 from src.services.ignav_api import IgnavAPIService
 from src.services.telegram import TelegramService
 
 
 class TestPriceCheckFlow:
-    def test_price_drop_detected(
-        self,
-        mock_logger: MagicMock,
-        sample_flight_response: dict
-    ) -> None:
+    def test_price_drop_detected(self, mock_logger: MagicMock, sample_flight_response: dict) -> None:
         with patch("src.services.ignav_api.RateLimiter") as MockRateLimiter:
             mock_limiter = MagicMock()
             mock_limiter.is_allowed.return_value = (True, "OK")
             MockRateLimiter.return_value = mock_limiter
 
-            with patch.object(
-                IgnavAPIService, "search_round_trip", return_value=sample_flight_response
-            ):
-                with patch.object(
-                    IgnavAPIService, "get_booking_link", return_value="https://example.com"
-                ):
+            with patch.object(IgnavAPIService, "search_round_trip", return_value=sample_flight_response):
+                with patch.object(IgnavAPIService, "get_booking_link", return_value="https://example.com"):
                     api = IgnavAPIService("ignav_test_key", mock_logger)
-                    flight = api.search_cheapest_round_trip(
-                        "MDE", "ADZ", ["2026-06-15"], return_days=5, adults=2
-                    )
+                    flight = api.search_cheapest_round_trip("MDE", "ADZ", ["2026-06-15"], return_days=5, adults=2)
 
                     assert flight is not None
                     assert flight.price == 150000
@@ -48,9 +38,9 @@ class TestTelegramMessageFormat:
                     "destination": "ADZ",
                     "airline": "Avianca",
                     "date": "2026-06-15",
-                    "return_date": "2026-06-20"
+                    "return_date": "2026-06-20",
                 },
-                booking_link="https://avianca.com/booking"
+                booking_link="https://avianca.com/booking",
             )
 
             call_args = mock_send.call_args[0][0]
@@ -62,10 +52,7 @@ class TestTelegramMessageFormat:
 
 
 class TestRateLimiterIntegration:
-    def test_rate_limiter_records_request(
-        self,
-        temp_data_dir: Path
-    ) -> None:
+    def test_rate_limiter_records_request(self, temp_data_dir: "Path") -> None:
         from src.utils import rate_limiter
 
         original_file = rate_limiter._RATE_LIMIT_FILE
@@ -83,10 +70,7 @@ class TestRateLimiterIntegration:
 
 
 class TestConfigValidation:
-    def test_missing_api_key_raises(
-        self,
-        mock_logger: MagicMock
-    ) -> None:
+    def test_missing_api_key_raises(self, mock_logger: MagicMock) -> None:
         with pytest.raises(ValueError, match="API key is required"):
             IgnavAPIService("")
 
@@ -106,16 +90,8 @@ class TestFlightDataEdgeCases:
         assert flight.price == 0
 
     def test_flight_data_with_missing_segments(self) -> None:
-        data = {
-            "price": {"amount": 100000, "currency": "COP"},
-            "outbound": {},
-            "inbound": {},
-            "ignav_id": "test123"
-        }
+        data = {"price": {"amount": 100000, "currency": "COP"}, "outbound": {}, "inbound": {}, "ignav_id": "test123"}
         flight = FlightData.from_ignav_response(data, "MDE", "2026-06-15", "ADZ")
         assert flight is not None
         assert flight.price == 100000
         assert flight.airline == "N/A"
-
-
-from pathlib import Path

@@ -1,12 +1,9 @@
 import json
 import logging
-import os
 import threading
 from pathlib import Path
-from typing import Optional
 
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
-
 
 logger = logging.getLogger("metrics")
 _METRICS_FILE = Path(__file__).parent.parent.parent / "data" / "metrics.json"
@@ -16,11 +13,11 @@ _lock = threading.Lock()
 def _load_persisted() -> dict:
     try:
         if _METRICS_FILE.exists():
-            with open(_METRICS_FILE, "r") as f:
+            with open(_METRICS_FILE) as f:
                 return json.load(f)
     except json.JSONDecodeError as e:
         logger.warning(f"Corrupted metrics file: {e}, starting fresh")
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Cannot read metrics file: {e}")
     return {}
 
@@ -30,7 +27,7 @@ def _save_persisted(data: dict) -> None:
         _METRICS_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(_METRICS_FILE, "w") as f:
             json.dump(data, f, indent=2)
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Cannot save metrics file: {e}")
 
 
@@ -59,7 +56,7 @@ class PersistentCounter:
                         logger.error(f"Failed to load prometheus label {labels}: {e}")
                         self.prom_counter.inc(val)
 
-    def inc(self, amount: float = 1, labels: Optional[dict] = None) -> None:
+    def inc(self, amount: float = 1, labels: dict | None = None) -> None:
         with _lock:
             self._value += amount
             try:
@@ -101,7 +98,7 @@ RATE_LIMIT_HITS = PersistentCounter("flight_tracker_rate_limit_hits_total", "Num
 
 
 class MetricsServer:
-    def __init__(self, port: int = 9090, logger_obj: Optional[logging.Logger] = None) -> None:
+    def __init__(self, port: int = 9090, logger_obj: logging.Logger | None = None) -> None:
         self.port = port
         self.logger = logger_obj or logger
         self._started = False
@@ -123,10 +120,10 @@ class MetricsServer:
         return self._started
 
 
-METRICS_SERVER: Optional[MetricsServer] = None
+METRICS_SERVER: MetricsServer | None = None
 
 
-def get_metrics_server(port: int = 9090, logger_obj: Optional[logging.Logger] = None) -> MetricsServer:
+def get_metrics_server(port: int = 9090, logger_obj: logging.Logger | None = None) -> MetricsServer:
     global METRICS_SERVER
     if METRICS_SERVER is None:
         METRICS_SERVER = MetricsServer(port, logger_obj)

@@ -1,11 +1,8 @@
 import csv
 import logging
-from datetime import datetime
-from typing import Optional
 
 from src.models.price_history import PriceHistory
 from src.utils.config import DESTINATIONS, ORIGINS
-
 
 logger = logging.getLogger(__name__)
 

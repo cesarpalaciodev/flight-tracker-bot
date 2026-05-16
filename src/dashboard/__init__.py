@@ -1,15 +1,15 @@
+import logging
+from contextlib import asynccontextmanager
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response
-from contextlib import asynccontextmanager
-import logging
-from datetime import datetime
 
-from src.utils.config import API_KEY, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-from src.utils.metrics import get_metrics_server
 from src.dashboard import routes, templates
 from src.dashboard.auth import verify_token
-
+from src.utils.config import API_KEY, TELEGRAM_CHAT_ID, TELEGRAM_TOKEN
+from src.utils.metrics import get_metrics_server
 
 logger = logging.getLogger("dashboard")
 

@@ -1,6 +1,6 @@
-import pytest
 import logging
-from src.utils.security import SensitiveDataFilter, RequestBodyFilter, setup_secure_logging
+
+from src.utils.security import RequestBodyFilter, SensitiveDataFilter, setup_secure_logging
 
 
 class TestSensitiveDataFilter:
@@ -75,7 +75,6 @@ class TestSetupSecureLogging:
         assert logger.name == "test_logger"
 
     def test_logger_has_secure_handlers(self) -> None:
-        import sys
-        logger = logging.getLogger("test_secure_logger_" + str(id(self)))
+        logging.getLogger("test_secure_logger_" + str(id(self)))
         result = setup_secure_logging("test_secure_logger_" + str(id(self)))
         assert len(result.handlers) > 0
