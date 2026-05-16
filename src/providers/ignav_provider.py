@@ -1,16 +1,14 @@
 """Ignav API provider — all Ignav HTTP calls centralized here."""
 
-import logging
-from typing import Optional
-
 from src.providers.base import BaseProvider, ApiResult
 
 
 class IgnavProvider(BaseProvider):
     BASE_URL = "https://ignav.com/api/fares"
+    PROVIDER_NAME = "ignav"
 
-    def __init__(self, api_key: str, logger_obj: Optional[logging.Logger] = None):
-        super().__init__(logger_obj)
+    def __init__(self, api_key: str):
+        super().__init__()
         self.session.headers.update({"X-Api-Key": api_key})
 
     def search_round_trip(

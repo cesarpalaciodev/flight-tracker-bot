@@ -1,80 +1,100 @@
-import logging
-from typing import Optional
+"""Application error hierarchy with context support."""
+
+from typing import Any, Optional
 
 
-class FlightTrackerError(Exception):
-    """Base exception for Flight Tracker."""
+class AppError(Exception):
+    """Base application error with context."""
+
+    def __init__(self, message: str, context: Optional[dict] = None, cause: Optional[Exception] = None):
+        super().__init__(message)
+        self.message = message
+        self.context = context or {}
+        self.cause = cause
+
+    def to_dict(self) -> dict:
+        return {
+            "type": self.__class__.__name__,
+            "message": self.message,
+            "context": self.context,
+            "cause": str(self.cause) if self.cause else None,
+        }
+
+
+class ConfigError(AppError):
+    """Configuration error."""
+
     pass
 
 
-class APIError(FlightTrackerError):
-    """API request failed."""
-    def __init__(self, message: str, status_code: Optional[int] = None, response: Optional[str] = None):
-        super().__init__(message)
+class DatabaseError(AppError):
+    """Database operation failed."""
+
+    pass
+
+
+class CacheError(AppError):
+    """Cache operation failed."""
+
+    pass
+
+
+class APIError(AppError):
+    """External API request failed."""
+
+    def __init__(self, message: str, status_code: Optional[int] = None, response: Optional[str] = None, **kwargs):
+        ctx = kwargs.pop("context", {})
+        ctx.update({"status_code": status_code, "response_preview": (response or "")[:200]})
+        super().__init__(message, context=ctx, **kwargs)
         self.status_code = status_code
         self.response = response
 
 
 class APIRateLimited(APIError):
     """API rate limit exceeded."""
+
     def __init__(self, retry_after: Optional[int] = None):
-        super().__init__("API rate limit exceeded")
+        super().__init__("API rate limit exceeded", status_code=429, context={"retry_after": retry_after})
         self.retry_after = retry_after
 
 
 class APITimeout(APIError):
     """API request timed out."""
-    def __init__(self, timeout: float):
-        super().__init__(f"API request timed out after {timeout}s")
-        self.timeout = timeout
+
+    def __init__(self, timeout_sec: float):
+        super().__init__(f"API request timed out after {timeout_sec}s", context={"timeout": timeout_sec})
+        self.timeout = timeout_sec
 
 
-class TelegramError(FlightTrackerError):
+class TelegramError(AppError):
     """Telegram message failed."""
+
     def __init__(self, message: str, status_code: Optional[int] = None):
-        super().__init__(message)
+        super().__init__(message, context={"status_code": status_code})
         self.status_code = status_code
 
 
-class ConfigError(FlightTrackerError):
-    """Configuration error."""
-    pass
+class FlightNotFoundError(AppError):
+    """No flights found for a route."""
 
-
-class DatabaseError(FlightTrackerError):
-    """Database operation failed."""
-    pass
-
-
-class CacheError(FlightTrackerError):
-    """Cache operation failed."""
-    pass
-
-
-class FlightNotFoundError(FlightTrackerError):
-    """No flights found for the given route."""
     def __init__(self, origin: str, destination: str, date: str):
-        super().__init__(f"No flights found for {origin} -> {destination} on {date}")
-        self.origin = origin
-        self.destination = destination
-        self.date = date
+        super().__init__(
+            f"No flights for {origin} -> {destination} on {date}",
+            context={
+                "origin": origin,
+                "destination": destination,
+                "date": date,
+            },
+        )
 
 
-class PriceAlertError(FlightTrackerError):
+class PriceAlertError(AppError):
     """Failed to send price alert."""
+
     pass
 
 
-def handle_api_error(logger: logging.Logger, error: Exception, context: str = "") -> None:
-    if isinstance(error, APIRateLimited):
-        logger.warning(f"[{context}] API rate limited. Waiting {error.retry_after or 60}s")
-    elif isinstance(error, APITimeout):
-        logger.error(f"[{context}] API timeout: {error.timeout}s")
-    elif isinstance(error, APIError):
-        logger.error(f"[{context}] API error: {error}")
-    elif isinstance(error, TelegramError):
-        logger.warning(f"[{context}] Telegram error (code {error.status_code}): {error}")
-    elif isinstance(error, FlightTrackerError):
-        logger.error(f"[{context}] {error}")
-    else:
-        logger.exception(f"[{context}] Unexpected error: {error}")
+class ProviderError(AppError):
+    """External provider call failed."""
+
+    pass

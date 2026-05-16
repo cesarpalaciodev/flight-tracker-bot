@@ -5,9 +5,8 @@ from typing import Optional
 from src.models.flight import FlightData
 from src.providers.ignav_provider import IgnavProvider
 from src.utils.cache import PriceCache
+from src.utils.logger import get_logger
 
-
-logger = logging.getLogger(__name__)
 
 AIRLINES_URLS = {
     "Avianca": "https://www.avianca.com/co/es/",
@@ -21,19 +20,19 @@ AIRLINES_URLS = {
 class IgnavAPIService:
     CURRENCY = "COP"
 
-    def __init__(self, api_key: str, logger_obj: Optional[logging.Logger] = None) -> None:
+    def __init__(self, api_key: str) -> None:
         if not api_key:
             raise ValueError("API key is required")
-        self.provider = IgnavProvider(api_key, logger_obj)
+        self.provider = IgnavProvider(api_key)
         self.cache = PriceCache()
-        self.logger = logger_obj or logger
+        self.log = get_logger("ignav_api")
 
     def search_round_trip(
         self, origin: str, destination: str, departure_date: str, return_date: str, adults: int = 2
     ) -> Optional[dict]:
         cached = self.cache.search_result(origin, destination, departure_date)
         if cached:
-            self.logger.info(f"Cache hit for {origin}->{destination} on {departure_date}")
+            self.log.info(f"Cache hit for {origin}->{destination} on {departure_date}")
             return cached
         result = self.provider.search_round_trip(origin, destination, departure_date, return_date, adults)
         if result.is_ok and result.data:
@@ -44,7 +43,7 @@ class IgnavAPIService:
     def search_flight(self, origin: str, destination: str, date: str) -> Optional[dict]:
         cached = self.cache.search_result(origin, destination, date)
         if cached:
-            self.logger.info(f"Cache hit for {origin}->{destination} on {date}")
+            self.log.info(f"Cache hit for {origin}->{destination} on {date}")
             return cached
         result = self.provider.search_one_way(origin, destination, date)
         if result.is_ok and result.data:
@@ -55,7 +54,7 @@ class IgnavAPIService:
     def get_cheapest(self, origin: str, destination: str, date: str) -> Optional[FlightData]:
         result_dict = self.search_flight(origin, destination, date)
         if not result_dict or not result_dict.get("itineraries"):
-            self.logger.info(f"No flights {origin} -> {destination} for {date}")
+            self.log.info(f"No flights {origin} -> {destination} for {date}")
             return None
         flights = result_dict["itineraries"]
         if isinstance(flights, list) and flights:
@@ -73,7 +72,7 @@ class IgnavAPIService:
             return None
         cached = self.cache.booking_link(ignav_id)
         if cached:
-            self.logger.info(f"Booking link cache hit")
+            self.log.info(f"Booking link cache hit")
             return cached
         result = self.provider.get_booking_link(ignav_id)
         if result.is_ok and result.data:
@@ -84,7 +83,7 @@ class IgnavAPIService:
                     url = links[0].get("url", "")
                     if url:
                         self.cache.set_booking_link(ignav_id, url)
-                        self.logger.info(f"Booking link found")
+                        self.log.info(f"Booking link found")
                         return url
         return None
 
@@ -117,5 +116,5 @@ class IgnavAPIService:
                         cheapest, origin, dep_date, destination, return_date=return_date
                     )
         if best_flight:
-            self.logger.info(f"Best price: ${best_flight.price:,.0f}")
+            self.log.info(f"Best price: ${best_flight.price:,.0f}")
         return best_flight
