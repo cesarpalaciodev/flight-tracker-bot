@@ -1,9 +1,10 @@
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+
 from src.dashboard import app
 from src.utils.metrics import get_metrics_server
-
 
 logger = logging.getLogger("main_dashboard")
 

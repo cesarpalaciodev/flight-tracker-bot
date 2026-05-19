@@ -1,10 +1,11 @@
 import logging
 from datetime import datetime, timedelta
+
 from src.models.price_history import PriceHistory
 from src.services.ignav_api import IgnavAPIService
 from src.services.telegram import TelegramService
 from src.utils import config
-from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_CHECKS, PRICE_ALERTS_SENT
+from src.utils.metrics import FLIGHTS_SEARCHED, PRICE_ALERTS_SENT, PRICE_CHECKS
 
 
 def get_departure_dates(days_ahead_start: int = 7, days_ahead_end: int = 60, interval: int = 7) -> list[str]:
