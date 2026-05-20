@@ -5,6 +5,7 @@ venv/
 env/
 .venv/
 ENV/
+.agents/
 
 # Byte-compiled
 __pycache__/
