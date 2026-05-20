@@ -28,15 +28,12 @@ class RateLimiter:
         try:
             with open(_RATE_LIMIT_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
-        except OSError:
-            pass
+        except OSError as e:
+            logging.getLogger("rate_limiter").debug(f"Cannot save rate limit file: {e}")
 
     def _clean_old_requests(self) -> None:
         cutoff = datetime.now() - timedelta(minutes=2)
-        self.data["requests"] = [
-            r for r in self.data["requests"]
-            if datetime.fromisoformat(r) > cutoff
-        ]
+        self.data["requests"] = [r for r in self.data["requests"] if datetime.fromisoformat(r) > cutoff]
 
     def _reset_daily(self) -> None:
         today = datetime.now().date().isoformat()
