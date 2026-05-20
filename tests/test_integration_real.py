@@ -1,21 +1,19 @@
 """Integration tests with real mocked API responses for the full price-check flow."""
 
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
 
 import pytest
 
-from src.models.price_history import PriceHistory
 from src.models.database import Database
 from src.models.flight import FlightData
-from src.services.ignav_api import IgnavAPIService
-from src.services.telegram import TelegramService
-from src.services.price_service import PriceService
-from src.repositories.user_repository import UserRepository
+from src.models.price_history import PriceHistory
 from src.repositories.price_repository import PriceRepository
-from src.utils.cache import PriceCache
-
+from src.repositories.user_repository import UserRepository
+from src.services.ignav_api import IgnavAPIService
+from src.services.price_service import PriceService
+from src.services.telegram import TelegramService
 
 # Realistic Ignav API response sample
 SAMPLE_FLIGHT_RESPONSE = {
@@ -133,8 +131,6 @@ def test_db():
     db_path = "data/test_int_flight_tracker.db"
     db_url = f"sqlite:///{db_path}"
     db = Database(db_url)
-    from src.repositories.user_repository import UserRepository
-    from src.repositories.price_repository import PriceRepository
 
     # Create test user
     db.set_user_config("999111888", origins="MDE,PEI", destinations="ADZ", adults=2, onboarded=1, active=1)
@@ -272,21 +268,18 @@ class TestProviderMocks:
     """Tests that the provider mocking layer works correctly."""
 
     def test_ignav_provider_returns_mocked_data(self, mock_ignav_provider):
-        from src.providers.base import ApiResult
 
         result = mock_ignav_provider.search_round_trip("MDE", "ADZ", "2026-06-15", "2026-06-20")
         assert result.is_ok
         assert result.data == SAMPLE_FLIGHT_RESPONSE
 
     def test_ignav_provider_booking_link(self, mock_ignav_provider):
-        from src.providers.base import ApiResult
 
         result = mock_ignav_provider.get_booking_link("abc123")
         assert result.is_ok
         assert result.data["booking_options"][0]["links"][0]["url"] == "https://avianca.com/book/ABC123"
 
     def test_telegram_provider_send(self, mock_telegram_provider):
-        from src.providers.base import ApiResult
 
         result = mock_telegram_provider.send_message("999111888", "test")
         assert result.is_ok

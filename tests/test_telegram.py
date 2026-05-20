@@ -1,7 +1,7 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from src.services.telegram import TelegramService
 from src.providers.base import ApiResult
+from src.services.telegram import TelegramService
 
 
 class TestTelegramService:

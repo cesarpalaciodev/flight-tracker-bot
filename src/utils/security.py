@@ -4,7 +4,7 @@ import re
 
 
 class SensitiveDataFilter(logging.Filter):
-    PATTERNS = [
+    PATTERNS = [  # noqa: RUF012
         (
             re.compile(r"(IGNAV_API_KEY|api_key|API_KEY)[=:]\s*['\"]?([a-zA-Z0-9_\-]+)['\"]?", re.IGNORECASE),
             r"\1=***REDACTED***",
@@ -46,7 +46,7 @@ class SensitiveDataFilter(logging.Filter):
 
 
 class RequestBodyFilter(logging.Filter):
-    SENSITIVE_KEYS = {
+    SENSITIVE_KEYS = {  # noqa: RUF012
         "api_key",
         "token",
         "password",
