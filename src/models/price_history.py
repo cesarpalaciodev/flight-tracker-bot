@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 
@@ -29,8 +30,8 @@ class PriceHistory:
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
-        except OSError:
-            pass
+        except OSError as e:
+            logging.getLogger("price_history").debug(f"Cannot save price history: {e}")
 
     def get_last_price(self, route: str) -> float | None:
         return self.data.get(route, {}).get("last_price")
@@ -39,12 +40,14 @@ class PriceHistory:
         if route not in self.data:
             self.data[route] = {}
 
-        self.data[route].update({
-            "last_price": flight_data.get("price"),
-            "last_update": flight_data.get("last_update"),
-            "airline": flight_data.get("airline"),
-            "booking_link": flight_data.get("booking_link")
-        })
+        self.data[route].update(
+            {
+                "last_price": flight_data.get("price"),
+                "last_update": flight_data.get("last_update"),
+                "airline": flight_data.get("airline"),
+                "booking_link": flight_data.get("booking_link"),
+            }
+        )
         self._save()
 
     def get_price_drop(self, route: str, new_price: float) -> float | None:

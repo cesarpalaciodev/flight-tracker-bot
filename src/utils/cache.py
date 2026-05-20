@@ -71,8 +71,8 @@ class PriceCache:
         if self.enabled and self.client:
             try:
                 self.client.delete(key)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Redis delete failed: {e}")
         self._local.pop(key, None)
 
     def clear(self) -> None:
@@ -80,8 +80,8 @@ class PriceCache:
             try:
                 for key in self.client.scan_iter(f"{self.PREFIX}*"):
                     self.client.delete(key)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Redis clear failed: {e}")
         self._local.clear()
 
     def get_or_set(self, ttl: int, *parts: str, factory) -> Any:

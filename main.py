@@ -80,8 +80,8 @@ def main() -> None:
         print("   3. Get your API key")
         return
 
-    api = IgnavAPIService(config.API_KEY, logger)
-    telegram = TelegramService(config.TELEGRAM_TOKEN, config.TELEGRAM_CHAT_ID, logger)
+    api = IgnavAPIService(config.API_KEY)
+    telegram = TelegramService(config.TELEGRAM_TOKEN, config.TELEGRAM_CHAT_ID)
     history = PriceHistory(config.PRICE_HISTORY_FILE)
 
     check_prices_and_notify(api, telegram, history, logger)
