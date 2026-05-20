@@ -1,0 +1,51 @@
+{
+  "title": "Flight Tracker",
+  "uid": "flight_tracker",
+  "version": 1,
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "Flights Searched",
+      "type": "stat",
+      "datasource": "prometheus",
+      "targets": [{"expr": "flight_tracker_flights_searched_total", "legendFormat": "Total"}],
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 6}
+    },
+    {
+      "title": "Price Alerts Sent",
+      "type": "stat",
+      "datasource": "prometheus",
+      "targets": [{"expr": "flight_tracker_price_alerts_sent_total", "legendFormat": "Total"}],
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 6}
+    },
+    {
+      "title": "Current Prices by Route",
+      "type": "table",
+      "datasource": "prometheus",
+      "targets": [{"expr": "flight_tracker_current_price_cop", "legendFormat": "{{origin}}-{{destination}}"}],
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 6}
+    },
+    {
+      "title": "API Requests by Status",
+      "type": "piechart",
+      "datasource": "prometheus",
+      "targets": [{"expr": "flight_tracker_api_requests_total", "legendFormat": "{{status}}"}],
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 6}
+    },
+    {
+      "title": "Price History",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "targets": [{"expr": "flight_tracker_current_price_cop", "legendFormat": "{{origin}}→{{destination}}"}],
+      "gridPos": {"x": 0, "y": 7, "w": 12, "h": 8}
+    },
+    {
+      "title": "Rate Limit Hits",
+      "type": "stat",
+      "datasource": "prometheus",
+      "targets": [{"expr": "flight_tracker_rate_limit_hits_total", "legendFormat": "Hits"}],
+      "gridPos": {"x": 12, "y": 7, "w": 6, "h": 4}
+    }
+  ],
+  "templating": {"list": []}
+}

@@ -17,7 +17,7 @@ class TestPriceCheckFlow:
 
             with patch.object(IgnavAPIService, "search_round_trip", return_value=sample_flight_response):
                 with patch.object(IgnavAPIService, "get_booking_link", return_value="https://example.com"):
-                    api = IgnavAPIService("ignav_test_key", mock_logger)
+                    api = IgnavAPIService("ignav_test_key")
                     flight = api.search_cheapest_round_trip("MDE", "ADZ", ["2026-06-15"], return_days=5, adults=2)
 
                     assert flight is not None
@@ -27,7 +27,7 @@ class TestPriceCheckFlow:
 
 class TestTelegramMessageFormat:
     def test_flight_alert_message_format(self, mock_logger: MagicMock) -> None:
-        service = TelegramService("123456:ABC", "987654321", mock_logger)
+        service = TelegramService("123456:ABC", "987654321")
 
         with patch.object(service, "send_message", return_value=True) as mock_send:
             service.send_flight_alert(
