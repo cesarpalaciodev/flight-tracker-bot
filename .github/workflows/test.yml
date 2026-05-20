@@ -1,0 +1,94 @@
+name: CI - Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017/test_db' }}
+  TOKEN: ${{ secrets.TOKEN || 'test_token_123' }}
+  ADMIN_ID: ${{ secrets.ADMIN_ID || 'test_admin_456' }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+      fail-fast: false
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-glob: "requirements*.txt"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mypy ruff pytest pytest-cov pytest-asyncio
+
+      - name: Wait for MongoDB
+        run: |
+          for i in $(seq 1 30); do
+            python -c "from pymongo import MongoClient; MongoClient('mongodb://localhost:27017/').admin.command('ping')" && echo "MongoDB ready" && break
+            echo "Waiting for MongoDB... ($i)"
+            sleep 2
+          done
+
+      - name: Run ruff linting
+        run: ruff check . --output-format=github
+
+      - name: Run mypy strict
+        run: |
+          mypy src/ --strict --ignore-missing-imports --no-warn-unused-ignores 2>&1 | head -100
+
+      - name: Run pytest with coverage
+        run: |
+          pytest \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=70 \
+            -v \
+            --ignore=tests/test_docker.py \
+            --ignore=tests/test_integration_docker.py \
+            -o "filterwarnings=ignore::DeprecationWarning" \
+            tests/
+        env:
+          MONGO_URI: mongodb://localhost:27017/test_db
+          TOKEN: test_token_ci
+          ADMIN_ID: admin_ci_789
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: github.event_name == 'push' && matrix.python-version == '3.12'
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
