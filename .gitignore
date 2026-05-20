@@ -1,44 +1,65 @@
 # Environment
 .env
-.env.local
-*.env
+.env.*
+venv/
+env/
+.venv/
+ENV/
 
-# Data
-data/
-*.json
-
-# Logs
-logs/
-*.log
-
-# Exports
-exports/
-
-# Python
+# Byte-compiled
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyd
 .Python
+
+# Distribution
+build/
+dist/
 *.egg-info/
 .eggs/
-dist/
-build/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+*.iml
 
 # OS
 .DS_Store
 Thumbs.db
+*.DS_Store
 
-# Virtual environments
-venv/
-env/
-.env/
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+logs/
+*.log
 
-# Database
+# Reports
+reports/
+bandit-results.*
+safety-results.*
+trivy-results.*
+
+# Type checking
+.mypy_cache/
+.ruff_cache/
+
+# Project data
+data/
+exports/
 *.db
+*.sqlite
+*.sqlite3
+
+# Security
+*.pem
+*.key
+*.crt
