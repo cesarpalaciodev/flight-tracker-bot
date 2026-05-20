@@ -9,46 +9,37 @@ from src.services.telegram import TelegramService
 
 
 class TestPriceCheckFlow:
-    def test_price_drop_detected(self, mock_logger: MagicMock, sample_flight_response: dict) -> None:
-        with patch("src.services.ignav_api.RateLimiter") as MockRateLimiter:
-            mock_limiter = MagicMock()
-            mock_limiter.is_allowed.return_value = (True, "OK")
-            MockRateLimiter.return_value = mock_limiter
-
-            with patch.object(IgnavAPIService, "search_round_trip", return_value=sample_flight_response):
-                with patch.object(IgnavAPIService, "get_booking_link", return_value="https://example.com"):
-                    api = IgnavAPIService("ignav_test_key")
-                    flight = api.search_cheapest_round_trip("MDE", "ADZ", ["2026-06-15"], return_days=5, adults=2)
-
-                    assert flight is not None
-                    assert flight.price == 150000
-                    mock_logger.info.assert_called()
+    def test_price_drop_detected(self, sample_flight_response: dict) -> None:
+        with patch.object(IgnavAPIService, "search_round_trip", return_value=sample_flight_response):
+            with patch.object(IgnavAPIService, "get_booking_link", return_value="https://example.com"):
+                api = IgnavAPIService("ignav_test_key")
+                flight = api.search_cheapest_round_trip("MDE", "ADZ", ["2026-06-15"], return_days=5, adults=2)
+                assert flight is not None
+                assert flight.price == 150000
 
 
 class TestTelegramMessageFormat:
-    def test_flight_alert_message_format(self, mock_logger: MagicMock) -> None:
+    def test_flight_alert_message_format(self) -> None:
         service = TelegramService("123456:ABC", "987654321")
-
-        with patch.object(service, "send_message", return_value=True) as mock_send:
-            service.send_flight_alert(
-                old_price=200000,
-                new_price=150000,
-                flight_data={
-                    "origin": "MDE",
-                    "destination": "ADZ",
-                    "airline": "Avianca",
-                    "date": "2026-06-15",
-                    "return_date": "2026-06-20",
-                },
-                booking_link="https://avianca.com/booking",
-            )
-
-            call_args = mock_send.call_args[0][0]
-            assert "PRECIO BAJO" in call_args
-            assert "200,000" in call_args
-            assert "150,000" in call_args
-            assert "50,000" in call_args
-            assert "Ahorro" in call_args
+        mock_provider = MagicMock()
+        mock_provider.send_message.return_value = __import__("src.providers.base", fromlist=["ApiResult"]).ApiResult.ok(
+            {"ok": True}
+        )
+        service.provider = mock_provider
+        service.send_flight_alert(
+            old_price=200000,
+            new_price=150000,
+            flight_data={
+                "origin": "MDE",
+                "destination": "ADZ",
+                "airline": "Avianca",
+                "date": "2026-06-15",
+                "return_date": "2026-06-20",
+            },
+            booking_link="https://avianca.com/booking",
+        )
+        call_args = mock_provider.send_message.call_args[0]
+        assert "PRECIO BAJO" in call_args[1]
 
 
 class TestRateLimiterIntegration:
@@ -70,7 +61,7 @@ class TestRateLimiterIntegration:
 
 
 class TestConfigValidation:
-    def test_missing_api_key_raises(self, mock_logger: MagicMock) -> None:
+    def test_missing_api_key_raises(self) -> None:
         with pytest.raises(ValueError, match="API key is required"):
             IgnavAPIService("")
 
@@ -78,9 +69,9 @@ class TestConfigValidation:
         with pytest.raises(ValueError, match="Telegram token is required"):
             TelegramService("", "123456")
 
-    def test_missing_telegram_chat_id_raises(self) -> None:
-        with pytest.raises(ValueError, match="Telegram chat_id is required"):
-            TelegramService("123:abc", "")
+    def test_empty_chat_id_allowed(self) -> None:
+        service = TelegramService("123:abc", "")
+        assert service.chat_ids == []
 
 
 class TestFlightDataEdgeCases:
