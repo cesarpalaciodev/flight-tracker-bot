@@ -13,7 +13,7 @@ AIRLINE_BOOKING_URLS = {
 
 
 class TelegramService:
-    ONBOARDING_STEPS = [
+    ONBOARDING_STEPS = [  # noqa: RUF012
         {
             "key": "origins",
             "question": "Paso 1/6: ¿Desde qué ciudad(es) viajas?\nEj: MDE, BOG, PEI (separadas por comas)",

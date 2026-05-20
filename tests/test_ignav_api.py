@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.models.flight import FlightData
-from src.services.ignav_api import IgnavAPIService
 from src.providers.base import ApiResult
+from src.services.ignav_api import IgnavAPIService
 
 
 class TestIgnavAPIService:
