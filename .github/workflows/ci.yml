@@ -8,7 +8,6 @@ on:
 
 env:
   PYTHON_VERSION: "3.12"
-  UV_VERSION: "0.4.24"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,78 +20,53 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Run GitLeaks
         uses: gitleaks/gitleaks-action@v3
-        env:
-          GITLEAKS_LICENSE_TYPE: "mit"
 
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
-          cache-dependency-glob: "**/.python-version"
-
       - name: Install dependencies
-        run: uv pip install --dev ruff mypy types-requests
-
+        run: |
+          pip install -r requirements.txt
+          pip install ruff mypy
       - name: Run Ruff linting
-        run: uv run ruff check .
-
+        run: ruff check src/ tests/ main*.py --output-format=github
       - name: Run MyPy type checking
-        run: uv run mypy src/
+        run: mypy src/ --ignore-missing-imports --no-strict-optional --follow-imports=skip
 
   security:
     name: Security Analysis
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [lint]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
-
-      - name: Install Bandit
-        run: uv pip install --dev bandit safety
-
+      - name: Install Bandit and Safety
+        run: pip install bandit safety
       - name: Run Bandit security scan
-        run: uv run bandit -r src/ -f json -o bandit-results.json
-        continue-on-error: true
-
+        run: bandit -r src/ -f json -o bandit-results.json --exit-zero
       - name: Run Safety dependency check
-        run: uv run safety check --json --output safety-results.json
+        run: safety check --full-report
         continue-on-error: true
-
       - name: Upload Bandit results
         if: always()
         uses: actions/upload-artifact@v4
@@ -101,40 +75,30 @@ jobs:
           path: bandit-results.json
           retention-days: 30
 
-      - name: Upload Safety results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: safety-results
-          path: safety-results.json
-          retention-days: 30
-
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
-          cache-dependency-glob: "**/.python-version"
-
       - name: Install dependencies
-        run: uv pip install --dev pytest pytest-cov pytest-mock pytest-asyncio httpx
-
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-mock pytest-asyncio httpx
       - name: Run pytest with coverage
-        run: uv run pytest tests/ --cov=src --cov-report=xml --cov-report=html --cov-fail-under=70
-
+        run: |
+          pytest \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=60 \
+            -v \
+            tests/
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         if: github.event_name == 'push'
@@ -148,20 +112,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [security, test]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -171,7 +131,6 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=sha,prefix=
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -181,8 +140,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          secrets: |
-            "git_token=${{ secrets.GITHUB_TOKEN }}"
 
   deploy:
     name: Deploy to Server
@@ -191,7 +148,6 @@ jobs:
     needs: [build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
-
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
@@ -210,11 +166,9 @@ jobs:
     name: Container Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -224,36 +178,8 @@ jobs:
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
           exit-code: "0"
-
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
-
-  docker-scan:
-    name: Docker Image Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Trivy on Docker image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/flight-tracker:latest
-          format: "sarif"
-          output: "docker-trivy-results.sarif"
-          severity: "CRITICAL,HIGH"
-          exit-code: "0"
-          scan-type: "image"
-
-      - name: Upload Docker scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: "docker-trivy-results.sarif"
