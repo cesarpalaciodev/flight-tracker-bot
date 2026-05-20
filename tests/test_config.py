@@ -10,12 +10,16 @@ class TestIgnavConfig:
         assert config.api_key == "ignav_test_key_123"
 
     def test_empty_api_key_allowed(self) -> None:
-        config = IgnavConfig(api_key="")
-        assert config.api_key == ""
+        with pytest.raises(ValidationError):
+            IgnavConfig(api_key="")
 
     def test_api_key_prefix_validation(self) -> None:
         with pytest.raises(ValidationError):
             IgnavConfig(api_key="invalid_key")
+
+    def test_api_key_required(self) -> None:
+        with pytest.raises(ValidationError):
+            IgnavConfig(api_key="")
 
 
 class TestTelegramConfig:
@@ -40,7 +44,7 @@ class TestTelegramConfig:
 class TestAppConfig:
     def test_default_values(self) -> None:
         config = AppConfig()
-        assert config.destination == "ADZ"
+        assert config.destinations == ["ADZ"]
         assert config.origins == ["MDE", "PEI"]
         assert config.adults == 2
         assert config.return_days == 5
