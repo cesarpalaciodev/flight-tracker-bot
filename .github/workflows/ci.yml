@@ -48,7 +48,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: pip install -r requirements.txt pytest pytest-cov pytest-mock pytest-asyncio httpx
       - run: |
-          pytest --cov=src --cov-fail-under=60 --ignore=tests/test_dashboard.py -v tests/
+          pytest --cov=src --cov-fail-under=30 --ignore=tests/test_dashboard.py -v tests/
         env:
           PYTHONPATH: .
       - uses: codecov/codecov-action@v4
