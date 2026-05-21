@@ -128,6 +128,7 @@ def temp_history_file(tmp_path: Path) -> Path:
 def test_db():
     import os
 
+    os.makedirs("data", exist_ok=True)
     db_path = "data/test_int_flight_tracker.db"
     db_url = f"sqlite:///{db_path}"
     db = Database(db_url)
