@@ -170,8 +170,6 @@ DAYS_INTERVAL: int = APP_CFG.days_interval
 DATABASE_URL: str = DB_CFG.url
 REDIS_URL: str = DB_CFG.redis_url
 
-JWT_SECRET: str = SEC_CFG.jwt_secret
-DASHBOARD_URL: str = SEC_CFG.dashboard_url
 ADMIN_CHAT_IDS: list[str] = SEC_CFG.admin_chat_ids
 STRIPE_SECRET_KEY: str = SEC_CFG.stripe_secret_key
 STRIPE_WEBHOOK_SECRET: str = SEC_CFG.stripe_webhook_secret
@@ -181,9 +179,6 @@ NEQUI_API_URL: str = SEC_CFG.nequi_api_url
 NEQUI_API_TOKEN: str = SEC_CFG.nequi_api_token
 CRYPTO_WALLET_USDT: str = SEC_CFG.crypto_wallet_usdt
 CRYPTO_WALLET_BTC: str = SEC_CFG.crypto_wallet_btc
-API_REQUESTS_LIMIT_FREE: int = SEC_CFG.api_requests_limit_free
-API_REQUESTS_LIMIT_PREMIUM: int = SEC_CFG.api_requests_limit_premium
-API_REQUESTS_LIMIT_PRO: int = SEC_CFG.api_requests_limit_pro
 
 PRICE_HISTORY_FILE: Path = BASE_DIR / "data" / "price_history.json"
 LOG_FILE: Path = BASE_DIR / "logs" / "flight_tracker.log"
