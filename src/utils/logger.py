@@ -85,7 +85,7 @@ def setup_logging(
     logger.handlers.clear()
 
     if json_output:
-        formatter = JsonFormatter()
+        formatter: logging.Formatter = JsonFormatter()
     else:
         formatter = logging.Formatter(
             "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",

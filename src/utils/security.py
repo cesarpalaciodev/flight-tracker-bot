@@ -73,9 +73,10 @@ class RequestBodyFilter(logging.Filter):
                 return json.dumps(filtered)
         except (json.JSONDecodeError, TypeError):
             return text
+        return text
 
     def _filter_dict(self, data: dict) -> dict:
-        result = {}
+        result: dict = {}
         for key, value in data.items():
             key_lower = key.lower()
             if key_lower in self.SENSITIVE_KEYS or any(sk in key_lower for sk in self.SENSITIVE_KEYS):
