@@ -16,6 +16,9 @@ def dashboard_test_db():
 
     from src.models.database import AlertLog, Base, Database, PriceRecord, Subscription, UserConfig
 
+    import os
+
+    os.makedirs("data", exist_ok=True)
     db_path = "data/test_flight_tracker.db"
     db_url = f"sqlite:///{db_path}"
 
