@@ -72,7 +72,7 @@ class RequestBodyFilter(logging.Filter):
                 filtered = self._filter_dict(data)
                 return json.dumps(filtered)
         except (json.JSONDecodeError, TypeError):
-            return text
+            pass
         return text
 
     def _filter_dict(self, data: dict) -> dict:

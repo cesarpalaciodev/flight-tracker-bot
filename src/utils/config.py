@@ -85,12 +85,6 @@ class AppConfig(BaseModel):
     days_ahead_start: int = Field(default=68)
     days_ahead_end: int = Field(default=131)
     days_interval: int = Field(default=14)
-    smtp_server: str = Field(default="")
-    smtp_port: int = Field(default=587)
-    smtp_username: str = Field(default="")
-    smtp_password: str = Field(default="")
-    from_email: str = Field(default="")
-    notify_email: str = Field(default="")
 
     @field_validator("origins", "destinations", mode="before")
     @classmethod
@@ -175,13 +169,6 @@ DAYS_INTERVAL: int = APP_CFG.days_interval
 
 DATABASE_URL: str = DB_CFG.url
 REDIS_URL: str = DB_CFG.redis_url
-
-SMTP_SERVER: str = APP_CFG.smtp_server
-SMTP_PORT: int = APP_CFG.smtp_port
-SMTP_USERNAME: str = APP_CFG.smtp_username
-SMTP_PASSWORD: str = APP_CFG.smtp_password
-FROM_EMAIL: str = APP_CFG.from_email
-NOTIFY_EMAIL: str = APP_CFG.notify_email
 
 JWT_SECRET: str = SEC_CFG.jwt_secret
 DASHBOARD_URL: str = SEC_CFG.dashboard_url
