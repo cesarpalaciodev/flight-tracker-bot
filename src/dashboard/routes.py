@@ -90,7 +90,8 @@ async def login(chat_id: str = Query(""), admin_chat_id: str = Query("")) -> dic
     db = get_db()
     user = db.get_user_config(chat_id)
     if not user:
-        return {"error": "User not found. First register via Telegram /start"}
+        # Auto-create user for convenience
+        user = db.get_or_create_user(chat_id)
     token = create_token(chat_id)
     is_admin = chat_id in ADMIN_CHAT_IDS
     return {
@@ -99,6 +100,16 @@ async def login(chat_id: str = Query(""), admin_chat_id: str = Query("")) -> dic
         "is_admin": is_admin,
         "plan": db.get_subscription(chat_id).plan if db.get_subscription(chat_id) else "trial",
     }
+
+
+@router.get("/export/csv")
+async def export_csv():
+    from fastapi.responses import PlainTextResponse
+    from src.services.export import export_price_history_csv
+    history = PriceHistory(PRICE_HISTORY_FILE)
+    csv_content = export_price_history_csv(history)
+    return PlainTextResponse(content=csv_content, media_type="text/csv",
+                             headers={"Content-Disposition": "attachment; filename=flight_prices.csv"})
 
 
 @router.get("/user/{chat_id}")

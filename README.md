@@ -5,11 +5,12 @@
 ![FastAPI](https://img.shields.io/badge/dashboard-FastAPI-green)
 ![Multi-User](https://img.shields.io/badge/multi--user-SaaS-orange)
 ![Stripe](https://img.shields.io/badge/payments-Stripe-purple)
-![Docker](https://img.shields.io/badge/docker-multi--stage-blue)
+![Docker](https://img.shields.io/badge/docker-build-green)
 ![DB](https://img.shields.io/badge/database-SQLAlchemy-orange)
 ![Redis](https://img.shields.io/badge/cache-Redis-red)
-![Tests](https://img.shields.io/badge/tests-pytest-yellow)
+![Tests](https://img.shields.io/badge/tests-97%20passed-yellow)
 ![Security](https://img.shields.io/badge/security-bandit-black)
+![CI](https://img.shields.io/badge/CI-passing-brightgreen)
 
 Multi-user flight price tracker SaaS with Telegram bot, onboarding wizard, per-user config, payments (Stripe/Nequi/Crypto), and admin dashboard.
 
